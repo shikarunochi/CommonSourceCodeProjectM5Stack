@@ -1,0 +1,27 @@
+copy here from /common/vm/
+------------
+datarec.cpp
+datarec.h
+device.h
+disk.cpp
+disk.h
+event.cpp
+event.h
+i8251.cpp
+i8251.h
+i8255.cpp
+i8255.h
+io.cpp
+io.h
+noise.cpp
+noise.h
+sn76489an.cpp
+sn76489an.h
+tms9918a.cpp
+tms9918a.h
+upd765a.cpp
+upd765a.h
+vm.h
+vm_template.h
+z80.cpp
+z80.h
