@@ -3,7 +3,10 @@
 
 	Author : Takeda.Toshiya
 	Date   : 2006.08.18 -
-
+	
+	M5Stack version.
+	modified by shikarunochi 2019.03.21 - 
+	
 	[ config ]
 */
 

@@ -72,7 +72,6 @@ private:
 	uint8_t pressedVMKey;
 	uint8_t keyCheckFrameCount;
 
-	int pressKey;
 	int pressedKey;
 	
 	String selectFile();
@@ -81,6 +80,14 @@ private:
 	uint32_t joy_status[4]; //joystick #1, #2 (b0 = up, b1 = down, b2 = left, b3 = right, b4- = buttons
 	bool joy_to_key_status[256];
 	
+	void checkJoyStick();
+	uint8_t joyPadMode;
+#define JOYPAD_NONE 0 
+//NORMAL PAD
+#define JOYPAD_MODE1 1
+//ROTETE PAD
+#define JOYPAD_MODE2 2
+
 public:
 	OSD()
 	{

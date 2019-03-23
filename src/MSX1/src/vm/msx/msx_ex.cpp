@@ -29,7 +29,7 @@
 #include "../noise.h"
 #include "../not.h"
 //#include "../ym2203.h"
-//#include "../ay_3_891x.h"
+#include "../ay_3_891x.h"
 //#include "../pcm1bit.h"
 #if !defined(_MSX1_VARIANTS)
 //#include "../rp5c01.h"
@@ -115,7 +115,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	ldp = new LD700(this, emu);
 #endif
 	not_remote = new NOT(this, emu);
-	//psg = new AY_3_891X(this, emu);
+	psg = new AY_3_891X(this, emu);
 #ifdef USE_DEBUGGER
 	psg->set_context_debugger(new DEBUGGER(this, emu));
 #endif
@@ -186,7 +186,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 #if defined(MSX_PSG_STEREO)
 	event->set_context_sound(psg_stereo);
 #else
-	//event->set_context_sound(psg);
+	event->set_context_sound(psg);
 #endif
 	//event->set_context_sound(pcm);
 	//event->set_context_sound(drec);
@@ -209,7 +209,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	not_remote->set_context_out(drec, SIG_DATAREC_REMOTE, 1);
 	pio->set_context_port_c(drec, SIG_DATAREC_MIC, 0x20, 0);
 	//pio->set_context_port_c(pcm, SIG_PCM1BIT_SIGNAL, 0x80, 0);
-	//psg->set_context_port_b(joystick, SIG_JOYSTICK_SEL, 0x40, 0);
+	psg->set_context_port_b(joystick, SIG_JOYSTICK_SEL, 0x40, 0);
 	vdp->set_context_irq(cpu, SIG_CPU_IRQ, 1);
 #if defined(LDC_SLOT)
 	pio->set_context_port_c(slot_ldc, SIG_LDC_MUTE, 0x10, 0);
@@ -218,7 +218,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	ldp->set_context_sound(psg, SIG_AY_3_891X_PORT_A, 0x80);
 #endif
 	
-	//joystick->set_context_psg(psg);
+	joystick->set_context_psg(psg);
 //	keyboard->set_context_cpu(cpu);
 	keyboard->set_context_pio(pio);
 //	memory->set_context_slot(0, slot0);
@@ -325,9 +325,9 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	io->set_iomap_alias_w(0xa1, psg_stereo, 1);	// PSG data
 	io->set_iomap_alias_r(0xa2, psg_stereo, 1);	// PSG data
 #else
-	//io->set_iomap_alias_w(0xa0, psg, 0);	// PSG ch
-	//io->set_iomap_alias_w(0xa1, psg, 1);	// PSG data
-	//io->set_iomap_alias_r(0xa2, psg, 1);	// PSG data
+	io->set_iomap_alias_w(0xa0, psg, 0);	// PSG ch
+	io->set_iomap_alias_w(0xa1, psg, 1);	// PSG data
+	io->set_iomap_alias_r(0xa2, psg, 1);	// PSG data
 #endif
 	io->set_iomap_range_rw(0xfc, 0xff, memory);
 	io->set_iomap_range_rw(0xd8, 0xdb, kanjirom);
@@ -473,7 +473,7 @@ void VM::set_sound_device_volume(int ch, int decibel_l, int decibel_r)
 	} else if(ch == 4) {
 		sound_cart[1]->set_volume(0, decibel_l, decibel_r);
 	} else if(ch == 5) {
-		ym2413->set_volume(0, decibel_l, decibel_r);
+		//ym2413->set_volume(0, decibel_l, decibel_r);
 	} else if(ch == 6) {
 		drec->get_context_noise_play()->set_volume(0, decibel_l, decibel_r);
 		drec->get_context_noise_stop()->set_volume(0, decibel_l, decibel_r);

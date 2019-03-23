@@ -7,6 +7,9 @@
 	modified by umaiboux
 	Date   : 2016.03.xx-
 
+	M5Stack version.
+	modified by shikarunochi 2019.03.21 -
+	
 	[ memory ]
 */
 

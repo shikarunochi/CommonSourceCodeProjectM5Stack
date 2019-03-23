@@ -191,7 +191,7 @@
 #else
 //#define USE_SOUND_VOLUME	7
 #endif
-//#define USE_JOYSTICK
+#define USE_JOYSTICK
 //#define USE_DEBUGGER
 //#define USE_STATE
 //#define USE_PRINTER

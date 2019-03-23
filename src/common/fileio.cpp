@@ -176,7 +176,6 @@ bool FILEIO::Fopen(const _TCHAR *file_path, int mode)
 	}
 #endif
 #if defined(_M5Stack)
-Serial.println("M5 FILE");
 	switch(mode) {
 	case FILEIO_READ_BINARY:
 		return (file = SD.open(file_path, "r"));

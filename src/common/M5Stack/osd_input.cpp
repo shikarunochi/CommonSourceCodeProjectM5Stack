@@ -274,9 +274,8 @@ static const uint8_t M5StackKeyMap[][2]={
 {0x00,0},//255 0xFF
 };
 
-
-
-
+#define CARDKB_ADDR 0x5F
+#define JOYSTICK_ADDR 0x52
 
 #define get_joy_range(min_value, max_value, lo_value, hi_value) \
 { \
@@ -292,10 +291,9 @@ void OSD::initialize_input()
 	memset(joy_status, 0, sizeof(joy_status));
 	memset(joy_to_key_status, 0, sizeof(joy_to_key_status));
 	pressedVMKey = 0;
-    keyCheckFrameCount = 0;
-
-    pressKey = 0;
-    pressedKey = 0;
+  keyCheckFrameCount = 0;
+  joyPadMode = JOYPAD_NONE;
+  pressedKey = 0;
 }
 
 void OSD::release_input()
@@ -306,28 +304,68 @@ void OSD::update_input()
 {
 	//M5Stackからのキー入力によって状態を変更する
 	checkKeyboard();
+  if(joyPadMode != JOYPAD_NONE){
+    checkJoyStick();
+  }
 	M5.update();
+  if(joyPadMode == JOYPAD_NONE){
     if (M5.BtnB.wasReleased())
     {
-		lock_vm();
-        String file = selectFile();
-        if(file.length() > 0){
-            String fileName  = ("/" + String(CONFIG_NAME) + "ROM/" + file);
-			const char *cFileName = fileName.c_str();
-        	M5.Lcd.fillScreen(TFT_BLACK);
-        	M5.Lcd.setCursor(0, 0);
-			vm->open_cart(0, cFileName);
-			//vm->reset();
-        	M5.Lcd.println(file);
-			delay(2000);
-		}
-		M5.Lcd.fillScreen(TFT_BLACK);
-		unlock_vm();
+      lock_vm();
+          String file = selectFile();
+          if(file.length() > 0){
+              String fileName  = ("/" + String(CONFIG_NAME) + "ROM/" + file);
+        const char *cFileName = fileName.c_str();
+            M5.Lcd.fillScreen(TFT_BLACK);
+            M5.Lcd.setCursor(0, 0);
+        vm->open_cart(0, cFileName);
+        //vm->reset();
+            M5.Lcd.println(file);
+        delay(2000);
+      }
+      M5.Lcd.fillScreen(TFT_BLACK);
+      unlock_vm();
     }
     if(pressedKey != 0){
-        key_status[pressedKey] = 0x00;
-        pressedKey = 0;
+      key_status[pressedKey] = 0x00;
+      pressedKey = 0;
     }
+  }else{
+    //joystick #1, #2 (b0 = up, b1 = down, b2 = left, b3 = right, b4- = buttons
+    if(M5.BtnB.wasPressed()){
+      joy_status[0] |= 0b010000;
+    }
+    
+    if(M5.BtnB.wasReleased()){
+      joy_status[0] &= ~0b010000;
+    }
+    if(M5.BtnC.wasPressed()){
+      joy_status[0] |= 0b100000;
+    }
+    if(M5.BtnC.wasReleased()){
+      joy_status[0] &= ~0b100000;
+    }
+  }
+
+  if(M5.BtnA.wasReleased()){
+    joy_status[0] = 0x00;//initialize
+    joyPadMode = joyPadMode + 1;
+    if(joyPadMode > 2){
+      joyPadMode = 0;
+    }
+    String joyPadStatusInfo = "";
+    switch(joyPadMode){
+      case JOYPAD_NONE:joyPadStatusInfo="NO JOYPAD";break;
+      case JOYPAD_MODE1:joyPadStatusInfo="NORMAL JOYPAD";break;
+      case JOYPAD_MODE2:joyPadStatusInfo="ROTATE JOYPAD";break;
+    }
+	  M5.Lcd.setCursor(0, 220);
+    M5.Lcd.setTextSize(2);
+    M5.Lcd.fillRect(0,210,320,30,TFT_BLACK);
+    M5.Lcd.print(joyPadStatusInfo);
+    delay(500);
+    M5.Lcd.fillRect(0,210,320,30,TFT_BLACK);
+  }
 }
 
 void OSD::key_down(int code, bool extended, bool repeat)
@@ -427,7 +465,6 @@ int OSD::checkSerialKey()
 //--------------------------------------------------------------
 // I2C Keyboard Logic
 //--------------------------------------------------------------
-#define CARDKB_ADDR 0x5F
 int OSD::checkI2cKeyboard()
 {
     int i2cKeyCode = 0;
@@ -462,4 +499,74 @@ int OSD::keyPress(int m5StackKeyCode)
 		key_status[pressedVMKey] = 0x80;
 	}
     return pressedVMKey;
+}
+
+//--------------------------------------------------------------
+// joyStick
+//--------------------------------------------------------------
+//joystick #1, #2 (b0 = up, b1 = down, b2 = left, b3 = right, b4- = buttons
+void OSD::checkJoyStick(){
+  int joy1 = 0;
+  int joy2 = 0;
+  int joyPress = 0;
+  int joyX = 0;
+  int joyY = 0;
+
+  if(Wire.requestFrom(JOYSTICK_ADDR,3) >= 3){
+      if(Wire.available()){joy1 = Wire.read();}
+      if(Wire.available()){joy2 = Wire.read();}
+      if(Wire.available()){joyPress = Wire.read();}//Press
+  }
+
+  if(joyPadMode == JOYPAD_MODE1){
+	  joyX = joy1;
+	  joyY = joy2;
+  }else{ //ROTETE
+	  joyX = joy2;
+	  joyY = joy1;
+  }
+
+  if(joyX == 0){ //NO JOYSTICK
+    return; 
+  }
+
+  if(joyPadMode == JOYPAD_MODE1){
+    //RIGHT  
+    if(joyX < 80){
+      joy_status[0] |= 0b001000;
+    }else{
+      joy_status[0] &= ~0b001000;
+    }
+    //LEFT
+    if(joyX > 160){
+      joy_status[0] |= 0b000100;
+    }else{
+      joy_status[0] &= ~0b000100;
+    }
+  }else{
+    //LEFT
+    if(joyX < 80){
+      joy_status[0] |= 0b000100;
+    }else{
+      joy_status[0] &= ~0b000100;
+    }
+    //RIGHT
+    if(joyX > 160){
+      joy_status[0] |= 0b001000;
+    }else{
+      joy_status[0] &= ~0b001000;
+    }
+  }
+  //UP
+  if(joyY < 80){
+    joy_status[0] |= 0b000001;
+  }else{
+    joy_status[0] &= ~0b000001;
+  }
+  //DOWN
+  if(joyY > 160){
+    joy_status[0] |= 0b000010;
+  }else{
+    joy_status[0] &= ~0b000010;
+  }
 }

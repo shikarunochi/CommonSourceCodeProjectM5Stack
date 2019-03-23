@@ -1067,7 +1067,7 @@ const _TCHAR *DLL_PREFIX get_initial_current_path()
 		GetCurrentDirectoryA(_MAX_PATH, current_path);
 #else
 		//getcwd(current_path, _MAX_PATH);
-		strncpy(current_path, "/SC-3000ROM/", _MAX_PATH);
+		strncpy(current_path, "/", _MAX_PATH);
 #endif
 		int len = strlen(current_path);
 		if(current_path[len - 1] != '\\' && current_path[len - 1] != '/') {

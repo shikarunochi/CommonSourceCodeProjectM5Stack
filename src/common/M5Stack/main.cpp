@@ -35,6 +35,8 @@ int emuMain()
     delay(2000);
 	M5.Lcd.fillScreen(TFT_BLACK);
 	
+	load_config("");
+	
 	// initialize emulation core
     emu=new EMU();
     
