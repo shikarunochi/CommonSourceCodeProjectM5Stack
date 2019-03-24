@@ -51,6 +51,8 @@ void OSD::initialize_screen()
 	if(SCREEN_HEIGHT < 240){
 		screenOffsetY = (240 - SCREEN_HEIGHT) / 2;
 	}
+	screenMessage = "";
+	preScreenMessage = "";
 }
 
 void OSD::release_screen()
@@ -68,6 +70,17 @@ int OSD::draw_screen()
 	scrntype_t* lpBmp =  draw_screen_buffer->lpBmp;
 #ifdef USE_DRAWBITMAP
 	M5.Lcd.drawBitmap(screenOffsetX, screenOffsetY, vm_screen_width, vm_screen_height, (uint16_t *)lpBmp);
+	if(preScreenMessage.equals(screenMessage)==false){
+		M5.Lcd.fillRect(0, 220, 320,20,TFT_BLACK);
+		preScreenMessage = screenMessage;
+	}
+	if(screenMessage.length()>0){
+		M5.Lcd.setCursor(0, 220);
+		M5.Lcd.setTextSize(2);
+		M5.Lcd.setTextColor(TFT_WHITE);
+		M5.Lcd.println(screenMessage);
+	}
+	
 #else
 	scrntype_t offset = 0;
 	for(int y = 0;y < vm_screen_height;y++){
@@ -100,4 +113,6 @@ void OSD::rotate_screen_buffer(bitmap_t *source, bitmap_t *dest)
 }
 //#endif
 
-
+void OSD::set_screen_message(String message){
+	screenMessage = message;
+}

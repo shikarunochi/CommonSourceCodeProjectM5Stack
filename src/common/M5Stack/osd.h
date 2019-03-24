@@ -65,6 +65,9 @@ private:
 	int draw_screen_width, draw_screen_height;
 	int screenOffsetX, screenOffsetY;
 
+	String screenMessage;
+	String preScreenMessage;
+
 	void checkKeyboard();
 	int checkSerialKey();
 	int checkI2cKeyboard();
@@ -195,12 +198,23 @@ public:
 	scrntype_t* get_vm_screen_buffer(int y);
 	int draw_screen();
 
+	// common sound[Dummy]
+	void update_sound(int* extra_frames){};
+	void mute_sound(){};
+	void stop_sound(){};
+	void start_record_sound(){};
+	void stop_record_sound(){};
+	void restart_record_sound(){};
+
 	void capture_screen();
 	bool start_record_video(int fps);
 	void stop_record_video();
 	void restart_record_video();
 	void add_extra_frames(int extra_frames);
 
+	bool openFile(String file);
+
+	void set_screen_message(String message);
 
 //シリアル入力からの入力を内部的に処理するための値。
 #define M5KEY_UP 0xB5

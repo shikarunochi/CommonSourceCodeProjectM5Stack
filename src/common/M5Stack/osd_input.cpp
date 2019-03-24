@@ -14,7 +14,7 @@
 static const uint8_t M5StackKeyMap[][2]={
 //cardKBのキーコードからの変換
 //M5Stackのキーが入力されたときに
-//実際にはどのキーを押すか , SHIFT 必要か
+//実際にはどのキーを押すか , SHIFT(1) 必要か、CTRL(2)必要か
 {0,0},// 0	0x00	
 {1,0},// 1	0x01	
 {2,0},// 2	0x02	
@@ -155,44 +155,44 @@ static const uint8_t M5StackKeyMap[][2]={
 {VK_F8,0},//136 0x88 Fn+8
 {VK_F9,0},//137 0x89 Fn+9
 {VK_F10,0},//138 0x8A Fn+0
-{VK_KANA,0},//139 0x8B Fn+BS
-{0x00,0},//140 0x8C
-{0x00,0},//141 0x8D
-{0x00,0},//142 0x8E
-{0x00,0},//143 0x8F
-{0x00,0},//144 0x90
-{0x00,0},//145 0x91
-{0x00,0},//146 0x92
-{0x00,0},//147 0x93
-{0x00,0},//148 0x94
-{0x00,0},//149 0x95
-{0x00,0},//150 0x96
-{0x00,0},//151 0x97
-{0x00,0},//152 0x98
-{VK_HOME,0},//153 0x99 Fn+UP
-{0x00,0},//154 0x9A
-{0x00,0},//155 0x9B
-{0x00,0},//156 0x9C
-{0x00,0},//157 0x9D
-{0x00,0},//158 0x9E
-{0x00,0},//159 0x9F
-{0x00,0},//160 0xA0
-{0x00,0},//161 0xA1
-{0x00,0},//162 0xA2
-{0x00,0},//163 0xA3
-{VK_END,0},//164 0xA4 Fn+Down
-{0x00,0},//165 0xA5
-{0x00,0},//166 0xA6
-{0x00,0},//167 0xA7
-{0x00,0},//168 0xA8
-{0x00,0},//169 0xA9
-{0x00,0},//170 0xAA
-{0x00,0},//171 0xAB
-{0x00,0},//172 0xAC
-{0x00,0},//173 0xAD
-{0x00,0},//174 0xAE
-{0x00,0},//175 0xAF
-{0x00,0},//176 0xB0
+{0,0},//139 0x8B Fn+BS
+{0x00,0},//140 0x8C Fn+TAB
+{0x11,0},//141 0x8D Fn+Q
+{0x17,0},//142 0x8E Fn+W
+{0x05,0},//143 0x8F Fn+E
+{0x12,0},//144 0x90 Fn+R
+{0x14,0},//145 0x91 Fn+T
+{0x19,0},//146 0x92 Fn+Y
+{0x15,0},//147 0x93 Fn+U
+{0x09,0},//148 0x94 Fn+I
+{0x0F,0},//149 0x95 Fn+O
+{0x10,0},//150 0x96 Fn+P
+{0x00,0},//151 0x97 
+{0x00,0},//152 0x98 Fn+Left
+{VK_HOME,0},//153 0x99  Fn+Up
+{0x01,0},//154 0x9A Fn+A
+{0x13,0},//155 0x9B Fn+S
+{0x04,0},//156 0x9C Fn+D
+{0x06,0},//157 0x9D Fn+F
+{0x07,0},//158 0x9E Fn+G
+{0x08,0},//159 0x9F Fn+H
+{0x0A,0},//160 0xA0 Fn+J
+{0x0B,0},//161 0xA1 Fn+K
+{0x0C,0},//162 0xA2 Fn+L
+{0x00,0},//163 0xA3 Fn+Enter
+{VK_END,0},//164 0xA4 F Fn+Down
+{0x00,0},//165 0xA5 Fn+Right
+{0x1A,0},//166 0xA6 Fn+Z
+{0x18,0},//167 0xA7 Fn+X
+{0x03,0},//168 0xA8 Fn+C
+{0x16,0},//169 0xA9 Fn+V
+{0x02,0},//170 0xAA Fn+B
+{0x0E,0},//171 0xAB Fn+N
+{0x0D,0},//172 0xAC Fn+M
+{0x00,0},//173 0xAD Fn+,
+{0x00,0},//174 0xAE Fn+.
+{VK_KANA,0},//175 0xAF Fn+SPACE
+{0x00,0},//176 0xB0 
 {0x00,0},//177 0xB1
 {0x00,0},//178 0xB2
 {0x00,0},//179 0xB3
@@ -312,17 +312,8 @@ void OSD::update_input()
     if (M5.BtnB.wasReleased())
     {
       lock_vm();
-          String file = selectFile();
-          if(file.length() > 0){
-              String fileName  = ("/" + String(CONFIG_NAME) + "ROM/" + file);
-        const char *cFileName = fileName.c_str();
-            M5.Lcd.fillScreen(TFT_BLACK);
-            M5.Lcd.setCursor(0, 0);
-        vm->open_cart(0, cFileName);
-        //vm->reset();
-            M5.Lcd.println(file);
-        delay(2000);
-      }
+      String file = selectFile();
+      openFile(file);
       M5.Lcd.fillScreen(TFT_BLACK);
       unlock_vm();
     }
@@ -390,14 +381,15 @@ void OSD::checkKeyboard()
         keyCheckFrameCount++;
         if (keyCheckFrameCount < 3)
         {
-            return;
+            return;//キーPress状態で３フレームキープ
         }
         keyCheckFrameCount = 0;
-        //vm->key_up(VK_SHIFT);
-		//vm->key_up(pressedVMKey);
-		key_status[VK_SHIFT] &= 0x7f;
-		key_status[pressedVMKey] &= 0x7f;
+        vm->key_up(VK_SHIFT);
+		    vm->key_up(pressedVMKey);
+		    key_status[VK_SHIFT] &= 0x7f;
+		    key_status[pressedVMKey] &= 0x7f;
         pressedVMKey = 0;
+        return; //キーReleaseした回もReturn
     }
 
     int inKeyCode;
@@ -491,14 +483,16 @@ int OSD::keyPress(int m5StackKeyCode)
 		pressedVMKey = M5StackKeyMap[m5StackKeyCode][0];
 		//shiftFlag
 		if(M5StackKeyMap[m5StackKeyCode][1] == 1){
-			//vm->key_down(VK_SHIFT, true); 
+			vm->key_down(VK_SHIFT, false); 
 			key_status[VK_SHIFT] = 0x80;
 		}
 		//vm->key_down(pressedVMKey, false);
         //Serial.println(pressedVMKey,HEX);
+    vm->key_down(pressedVMKey, false);
 		key_status[pressedVMKey] = 0x80;
 	}
-    return pressedVMKey;
+
+  return pressedVMKey;
 }
 
 //--------------------------------------------------------------
@@ -569,4 +563,39 @@ void OSD::checkJoyStick(){
   }else{
     joy_status[0] &= ~0b000010;
   }
+}
+//--------------------------------------------------------------
+// openFile
+//--------------------------------------------------------------
+bool OSD::openFile(String file){
+  if(file.length() > 0){
+    String fileName = ("/" + String(CONFIG_NAME) + "ROM/" + file);
+    const char *cFileName = fileName.c_str();
+    M5.Lcd.fillScreen(TFT_BLACK);
+    M5.Lcd.setCursor(0, 0);
+
+    //拡張子チェック
+    fileName.toUpperCase();
+    bool openFlag = false;
+#ifdef USE_TAPE
+    if(fileName.endsWith(".P6T")
+      ||fileName.endsWith(".P6")
+      ||fileName.endsWith(".CAS")
+      ||fileName.endsWith(".MZT")
+    ){
+      vm->play_tape(0, cFileName);
+      M5.Lcd.println("PLAY TAPE");
+      openFlag = true;
+    }
+#endif
+    //該当なければCARTに設定
+    if(openFlag == false){        
+      vm->open_cart(0, cFileName);
+      M5.Lcd.println("SET CART");
+    }
+    //vm->reset();
+    M5.Lcd.println(file);
+    delay(2000);
+  }
+  return true;
 }
