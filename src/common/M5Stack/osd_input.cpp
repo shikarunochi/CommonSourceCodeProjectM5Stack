@@ -81,70 +81,70 @@ static const uint8_t M5StackKeyMap[][2]={
 {0xBE,1},// 62	0x3e	>
 {0xBF,1},// 63	0x3f	?
 {0xC0,0},// 64	0x40	@
-{'A',0},// 65	0x41	A
-{'B',0},// 66	0x42	B
-{'C',0},// 67	0x43	C
-{'D',0},// 68	0x44	D
-{'E',0},// 69	0x45	E
-{'F',0},// 70	0x46	F
-{'G',0},// 71	0x47	G
-{'H',0},// 72	0x48	H
-{'I',0},// 73	0x49	I
-{'J',0},// 74	0x4a	J
-{'K',0},// 75	0x4b	K
-{'L',0},// 76	0x4c	L
-{'M',0},// 77	0x4d	M
-{'N',0},// 78	0x4e	N
-{'O',0},// 79	0x4f	O
-{'P',0},// 80	0x50	P
-{'Q',0},// 81	0x51	Q
-{'R',0},// 82	0x52	R
-{'S',0},// 83	0x53	S
-{'T',0},// 84	0x54	T
-{'U',0},// 85	0x55	U
-{'V',0},// 86	0x56	V
-{'W',0},// 87	0x57	W
-{'X',0},// 88	0x58	X
-{'Y',0},// 89	0x59	Y
-{'Z',0},// 90	0x5a	Z
+{'A',1},// 65	0x41	A
+{'B',1},// 66	0x42	B
+{'C',1},// 67	0x43	C
+{'D',1},// 68	0x44	D
+{'E',1},// 69	0x45	E
+{'F',1},// 70	0x46	F
+{'G',1},// 71	0x47	G
+{'H',1},// 72	0x48	H
+{'I',1},// 73	0x49	I
+{'J',1},// 74	0x4a	J
+{'K',1},// 75	0x4b	K
+{'L',1},// 76	0x4c	L
+{'M',1},// 77	0x4d	M
+{'N',1},// 78	0x4e	N
+{'O',1},// 79	0x4f	O
+{'P',1},// 80	0x50	P
+{'Q',1},// 81	0x51	Q
+{'R',1},// 82	0x52	R
+{'S',1},// 83	0x53	S
+{'T',1},// 84	0x54	T
+{'U',1},// 85	0x55	U
+{'V',1},// 86	0x56	V
+{'W',1},// 87	0x57	W
+{'X',1},// 88	0x58	X
+{'Y',1},// 89	0x59	Y
+{'Z',1},// 90	0x5a	Z
 {0xDB,0},// 91	0x5b	[
 {'\\',0},// 92	0x5c	\.
 {0xDD,0},// {0,0},// 93	0x5d	]
 {0xDE,0},// 94	0x5e	^
 {'\\',1},// 95	0x5f	_
 {0xC0,1},// 96	0x60	`
-{'A',1},// 97	0x61	a
-{'B',1},// 98	0x62	b
-{'C',1},// 99	0x63	c
-{'D',1},// 100	0x64	d
-{'E',1},// 101	0x65	e
-{'F',1},// 102	0x66	f
-{'G',1},// 103	0x67	g
-{'H',1},// 104	0x68	h
-{'I',1},// 105	0x69	i
-{'J',1},// 106	0x6a	j
-{'K',1},// 107	0x6b	k
-{'L',1},// 108	0x6c	l
-{'M',1},// 109	0x6d	m
-{'N',1},// 110	0x6e	n
-{'O',1},// 111	0x6f	o
-{'P',1},// 112	0x70	p
-{'Q',1},// 113	0x71	q
-{'R',1},// 114	0x72	r
-{'S',1},// 115	0x73	s
-{'T',1},// 116	0x74	t
-{'U',1},// 117	0x75	u
-{'V',1},// 118	0x76	v
-{'W',1},// 119	0x77	w
-{'X',1},// 120	0x78	x
-{'Y',1},// 121	0x79	y
-{'Z',1},// 122	0x7a	z
+{'A',0},// 97	0x61	a
+{'B',0},// 98	0x62	b
+{'C',0},// 99	0x63	c
+{'D',0},// 100	0x64	d
+{'E',0},// 101	0x65	e
+{'F',0},// 102	0x66	f
+{'G',0},// 103	0x67	g
+{'H',0},// 104	0x68	h
+{'I',0},// 105	0x69	i
+{'J',0},// 106	0x6a	j
+{'K',0},// 107	0x6b	k
+{'L',0},// 108	0x6c	l
+{'M',0},// 109	0x6d	m
+{'N',0},// 110	0x6e	n
+{'O',0},// 111	0x6f	o
+{'P',0},// 112	0x70	p
+{'Q',0},// 113	0x71	q
+{'R',0},// 114	0x72	r
+{'S',0},// 115	0x73	s
+{'T',0},// 116	0x74	t
+{'U',0},// 117	0x75	u
+{'V',0},// 118	0x76	v
+{'W',0},// 119	0x77	w
+{'X',0},// 120	0x78	x
+{'Y',0},// 121	0x79	y
+{'Z',0},// 122	0x7a	z
 {0xDB,1},// 123	0x7b	{
 {'\\',1},// 124	0x7c	|
 {0xDD,1},// 125	0x7d	}
 {0xDE,1},// 126	0x7e	~
 {VK_INSERT,0},// 127	0x7f SHIFT+BS
-{0x00,0},//128 0x80 Fn+ESC
+{VK_PAUSE,0},//128 0x80 Fn+ESC
 {VK_F1,0},//129 0x81 Fn+1
 {VK_F2,0},//130 0x82 Fn+2
 {VK_F3,0},//131 0x83 Fn+3
@@ -168,8 +168,8 @@ static const uint8_t M5StackKeyMap[][2]={
 {0x0F,0},//149 0x95 Fn+O
 {0x10,0},//150 0x96 Fn+P
 {0x00,0},//151 0x97 
-{0x00,0},//152 0x98 Fn+Left
-{VK_HOME,0},//153 0x99  Fn+Up
+{VK_HOME,0},//152 0x98 Fn+Left
+{VK_PRIOR,0},//153 0x99  Fn+Up
 {0x01,0},//154 0x9A Fn+A
 {0x13,0},//155 0x9B Fn+S
 {0x04,0},//156 0x9C Fn+D
@@ -180,8 +180,8 @@ static const uint8_t M5StackKeyMap[][2]={
 {0x0B,0},//161 0xA1 Fn+K
 {0x0C,0},//162 0xA2 Fn+L
 {0x00,0},//163 0xA3 Fn+Enter
-{VK_END,0},//164 0xA4 F Fn+Down
-{0x00,0},//165 0xA5 Fn+Right
+{VK_NEXT,0},//164 0xA4 F Fn+Down
+{VK_END,0},//165 0xA5 Fn+Right
 {0x1A,0},//166 0xA6 Fn+Z
 {0x18,0},//167 0xA7 Fn+X
 {0x03,0},//168 0xA8 Fn+C
@@ -381,15 +381,17 @@ void OSD::checkKeyboard()
         keyCheckFrameCount++;
         if (keyCheckFrameCount < 3)
         {
-            return;//キーPress状態で３フレームキープ
+          if(keyCheckFrameCount == 1){
+            vm->key_down(pressedVMKey, false);
+          }
+          return;//キーPress状態で2フレームキープ
         }
         keyCheckFrameCount = 0;
-        vm->key_up(VK_SHIFT);
+        //vm->key_up(VK_SHIFT);
 		    vm->key_up(pressedVMKey);
 		    key_status[VK_SHIFT] &= 0x7f;
 		    key_status[pressedVMKey] &= 0x7f;
         pressedVMKey = 0;
-        return; //キーReleaseした回もReturn
     }
 
     int inKeyCode;
@@ -483,12 +485,11 @@ int OSD::keyPress(int m5StackKeyCode)
 		pressedVMKey = M5StackKeyMap[m5StackKeyCode][0];
 		//shiftFlag
 		if(M5StackKeyMap[m5StackKeyCode][1] == 1){
-			vm->key_down(VK_SHIFT, false); 
+			//vm->key_down(VK_SHIFT, false); 
 			key_status[VK_SHIFT] = 0x80;
 		}
 		//vm->key_down(pressedVMKey, false);
         //Serial.println(pressedVMKey,HEX);
-    vm->key_down(pressedVMKey, false);
 		key_status[pressedVMKey] = 0x80;
 	}
 
