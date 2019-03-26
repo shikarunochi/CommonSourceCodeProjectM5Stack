@@ -4,7 +4,7 @@
 	Win32 Version
 	Author : Takeda.Toshiya
 	Date   : 2006.08.18 -
-	[ win32 main ]
+	[ M5Stack main ]
 
 	modified by @shikarunochi 2019.03
 */

@@ -4,7 +4,10 @@
 	Author : Takeda.Toshiya
 	Date   : 2015.11.20-
 
-	[ win32 screen ]
+	M5Stack version.
+	modified by shikarunochi 2019.03.21 -
+
+	[ M5Stack screen ]
 */
 
 #include "osd.h"

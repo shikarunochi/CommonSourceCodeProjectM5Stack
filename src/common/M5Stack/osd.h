@@ -4,7 +4,10 @@
 	Author : Takeda.Toshiya
 	Date   : 2015.11.20-
 
-	[ win32 dependent ]
+	M5Stack version.
+	modified by shikarunochi 2019.03.21 -
+
+	[ M5Stack dependent ]
 */
 
 #ifndef _M5STACK_OSD_H_
@@ -91,6 +94,8 @@ private:
 //ROTETE PAD
 #define JOYPAD_MODE2 2
 
+	void keyInputConfig();
+	uint8_t M5StackKeyMap[255][2];
 public:
 	OSD()
 	{
@@ -224,6 +229,7 @@ public:
 #define M5KEY_HOME 0x99
 #define M5KEY_END 0xA4
 #define M5KEY_INSERT 0x7F
+#define M5KEY_BACKSPACE 0x08
 /*
  * Virtual Keys, Standard Set
  */
