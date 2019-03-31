@@ -13,8 +13,6 @@
 #include "osd.h"
 #include "../fifo.h"
 
-
-
 #define CARDKB_ADDR 0x5F
 #define JOYSTICK_ADDR 0x52
 
@@ -79,7 +77,7 @@ void OSD::update_input()
       joy_status[0] &= ~0b100000;
     }
   }
-
+  /*
   if(M5.BtnA.wasReleased()){
     joy_status[0] = 0x00;//initialize
     joyPadMode = joyPadMode + 1;
@@ -98,6 +96,13 @@ void OSD::update_input()
     M5.Lcd.print(joyPadStatusInfo);
     delay(500);
     M5.Lcd.fillRect(0,210,320,30,TFT_BLACK);
+  }
+  */
+  if(M5.BtnC.wasPressed()){ 
+    //メニュー表示
+    delay(100);
+    systemMenu();
+    delay(100);
   }
 }
 
@@ -313,7 +318,7 @@ void OSD::checkJoyStick(){
 //--------------------------------------------------------------
 bool OSD::openFile(String file){
   if(file.length() > 0){
-    String fileName = ("/" + String(CONFIG_NAME) + "ROM/" + file);
+    String fileName = ("/" + String(CONFIG_NAME) + "ROM" + String(config.filePathSuffix) + "/" + file);
     const char *cFileName = fileName.c_str();
     M5.Lcd.fillScreen(TFT_BLACK);
     M5.Lcd.setCursor(0, 0);
@@ -332,6 +337,17 @@ bool OSD::openFile(String file){
       openFlag = true;
     }
 #endif
+#ifdef USE_FLOPPY_DISK
+    if(fileName.endsWith(".DSK")
+      ||fileName.endsWith(".D88")
+      ||fileName.endsWith(".1DD")
+    ){
+      vm->open_floppy_disk(0, cFileName, 0);
+      M5.Lcd.println("SET FLOPPY DISK");
+      openFlag = true;
+    }
+#endif
+
     //該当なければCARTに設定
     if(openFlag == false){        
       vm->open_cart(0, cFileName);
@@ -342,4 +358,140 @@ bool OSD::openFile(String file){
     delay(2000);
   }
   return true;
+}
+
+//--------------------------------------------------------------
+// SystemMenu
+//--------------------------------------------------------------
+#define JOYPAD_INDEX 3
+#define RELOAD_SD_INDEX 2
+void OSD::systemMenu()
+{
+  static String menuItem[] =
+  {
+   "[BACK]",
+   "RESET",
+   "RELOAD microSD Card",
+   "JOYPAD",
+   ""};
+
+  delay(10);
+  M5.Lcd.fillScreen(TFT_BLACK);
+  delay(10);
+  M5.Lcd.setTextSize(2);
+  bool needRedraw = true;
+
+  int menuItemCount = 0;
+  while(menuItem[menuItemCount] != ""){
+    menuItemCount++;
+  }
+
+  int selectIndex = 0;
+  delay(100);
+  M5.update();
+
+  while (true)
+  {
+    if (needRedraw == true)
+    {
+      M5.Lcd.setCursor(0, 0);
+      for (int index = 0; index < menuItemCount; index++)
+      {
+        if (index == selectIndex)
+        {
+          M5.Lcd.setTextColor(TFT_GREEN);
+        }
+        else
+        {
+          M5.Lcd.setTextColor(TFT_WHITE);
+        }
+        String curItem = menuItem[index];
+        if(index == JOYPAD_INDEX){
+            switch(joyPadMode){
+                case JOYPAD_NONE:curItem = curItem + ": NO JOYPAD";break;
+                case JOYPAD_MODE1:curItem = curItem + ": NORMAL JOYPAD";break;
+                case JOYPAD_MODE2:curItem = curItem + ": ROTATE JOYPAD";break;
+            }
+
+        }
+        M5.Lcd.println(curItem);
+      }
+      //CART/DISK/TAPE の表示
+      
+      M5.Lcd.setTextColor(TFT_WHITE);
+      M5.Lcd.drawRect(0, 240 - 19, 100, 18, TFT_WHITE);
+      M5.Lcd.drawCentreString("U P", 53, 240 - 17, 1);
+      M5.Lcd.drawRect(110, 240 - 19, 100, 18, TFT_WHITE);
+      M5.Lcd.drawCentreString("SELECT", 159, 240 - 17, 1);
+      M5.Lcd.drawRect(220, 240 - 19, 100, 18, TFT_WHITE);
+      M5.Lcd.drawCentreString("DOWN", 266, 240 - 17, 1);
+      needRedraw = false;
+    }
+    M5.update();
+    if (M5.BtnA.wasReleased())
+    {
+      selectIndex--;
+      if (selectIndex < 0)
+      {
+        selectIndex = menuItemCount -1;
+      }
+      needRedraw = true;
+    }
+
+    if (M5.BtnC.wasReleased())
+    {
+      selectIndex++;
+      if (selectIndex >= menuItemCount)
+      {
+        selectIndex = 0;
+      }
+      needRedraw = true;
+    }
+
+    if (M5.BtnB.wasReleased())
+    {
+      if (selectIndex == 0)
+      {
+        M5.Lcd.fillScreen(TFT_BLACK);
+        delay(10);
+        return;
+      }
+      switch (selectIndex)
+      {
+        case 1:
+          M5.Lcd.fillScreen(TFT_BLACK);
+          M5.Lcd.setCursor(0, 0);
+          M5.Lcd.print("Reset: " + String(DEVICE_NAME));
+          delay(2000);
+          M5.Lcd.fillScreen(TFT_BLACK);
+		      vm->reset();
+          return;
+        case RELOAD_SD_INDEX:
+          //SD reload
+          M5.Lcd.fillScreen(TFT_BLACK);
+          M5.Lcd.setCursor(0, 0);
+          M5.Lcd.print("RELOAD microSD Card");
+          SD.end();
+          SD.begin(TFCARD_CS_PIN);
+          delay(2000);
+          M5.Lcd.fillScreen(TFT_BLACK);
+          return;
+        case JOYPAD_INDEX:
+          joy_status[0] = 0x00;//initialize
+          joyPadMode = joyPadMode + 1;
+          if(joyPadMode > 2){
+           joyPadMode = 0;
+          }
+          break;
+        default:
+          M5.Lcd.fillScreen(TFT_BLACK);
+          delay(10);
+          return;
+      }
+      M5.Lcd.fillScreen(TFT_BLACK);
+      M5.Lcd.setCursor(0, 0);
+      needRedraw = true;
+    }
+    delay(100);
+  }
 }

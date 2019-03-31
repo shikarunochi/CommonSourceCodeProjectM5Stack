@@ -56,12 +56,24 @@ void OSD::initialize_screen()
 	}
 	screenMessage = "";
 	preScreenMessage = "";
+	#ifdef USE_SCREEN_FILTER
+	screen_skip_line = false;
+	#endif
+	for(int i = 0;i < 4;i++){
+		diskStatus[i] = 0;
+	}
 }
 
 void OSD::release_screen()
 {
 
 }
+
+void OSD::set_vm_screen_lines(int lines)
+{
+//	set_vm_screen_size(vm_screen_width, lines, vm_window_width, vm_window_height, vm_window_width_aspect, vm_screen_height);
+}
+
 scrntype_t* OSD::get_vm_screen_buffer(int y)
 {
 	return vm_screen_buffer.get_buffer(y);
@@ -82,6 +94,25 @@ int OSD::draw_screen()
 		M5.Lcd.setTextSize(2);
 		M5.Lcd.setTextColor(TFT_WHITE);
 		M5.Lcd.println(screenMessage);
+	}
+	for(int i = 0;i < 4;i++){
+		if(diskStatus[i] != 0){
+			uint32_t color = TFT_BLACK;
+			switch(diskStatus[i]){
+				case 1:
+					color = TFT_GREEN;
+					diskStatus[i] = 3;
+					break;
+				case 2:
+					color = TFT_RED;
+					diskStatus[i] = 3;
+					break;
+				case 3:
+					diskStatus[i] = 0;
+					break;
+			}
+			M5.Lcd.fillRect(1 + 0 + i * 5,235,4,4,color);
+		}
 	}
 	
 #else
@@ -118,4 +149,12 @@ void OSD::rotate_screen_buffer(bitmap_t *source, bitmap_t *dest)
 
 void OSD::set_screen_message(String message){
 	screenMessage = message;
+}
+
+void OSD::set_disk_status(int drvNo, int status){
+	if(diskStatus[drvNo] != status){
+		diskStatus[drvNo] = status;
+	}else{
+		diskStatus[drvNo] = 3;//同じstatusが連続で来たら一旦消して点滅に見せる
+	}
 }

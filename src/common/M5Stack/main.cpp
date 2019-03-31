@@ -37,6 +37,15 @@ int emuMain()
 	
 	load_config("");
 	
+	if(digitalRead(BUTTON_C_PIN) == 0) {
+    	Serial.println("Alt File Path");
+     	M5.Lcd.println("Alt File Path");
+     	delay(2000);
+     	strcpy(config.filePathSuffix,"alt");
+        M5.Lcd.fillScreen(TFT_BLACK);
+		delay(1000);
+  	}
+
 	// initialize emulation core
     emu=new EMU();
     

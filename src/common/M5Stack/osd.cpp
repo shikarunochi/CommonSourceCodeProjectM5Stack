@@ -165,7 +165,7 @@ String OSD::selectFile()
 	M5.Lcd.setCursor(0, 0);
     M5.Lcd.setTextSize(2);
     
-    String fileDir = "/" + String(CONFIG_NAME) + "ROM";
+    String fileDir = "/" + String(CONFIG_NAME) + "ROM" + String(config.filePathSuffix) ;
     if (fileDir.endsWith("/") == true)
     {
         fileDir = fileDir.substring(0, fileDir.length() - 1);
@@ -200,7 +200,6 @@ String OSD::selectFile()
         entry.close();
     }
     fileRoot.close();
-
 
     int startIndex = 0;
     int endIndex = startIndex + 10;
@@ -336,8 +335,8 @@ String OSD::selectFile()
             else
             {
                 delay(10);
-                String selectFile = fileList[selectIndex - 1];
-                if(SD.exists(fileDir + "/" + selectFile)==false){
+                String selectFileName = fileList[selectIndex - 1];
+                if(SD.exists(fileDir + "/" + selectFileName)==false){
                     M5.Lcd.fillScreen(TFT_BLACK);
                     M5.Lcd.setCursor(0, 0);
                     M5.Lcd.println("FILE NOT EXIST");
@@ -346,7 +345,7 @@ String OSD::selectFile()
                     M5.Lcd.fillScreen(TFT_BLACK);
                     needRedraw = true;
                 }else{
-				    return selectFile;
+				    return selectFileName;
                 }
             }
         }

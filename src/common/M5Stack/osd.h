@@ -83,6 +83,8 @@ private:
 	String selectFile();
 	void sortList(String fileList[], int fileListCount);
 
+	void systemMenu();
+
 	uint32_t joy_status[4]; //joystick #1, #2 (b0 = up, b1 = down, b2 = left, b3 = right, b4- = buttons
 	bool joy_to_key_status[256];
 	
@@ -96,6 +98,9 @@ private:
 
 	void keyInputConfig();
 	uint8_t M5StackKeyMap[255][2];
+
+	uint8_t diskStatus[4];
+
 public:
 	OSD()
 	{
@@ -216,10 +221,16 @@ public:
 	void stop_record_video();
 	void restart_record_video();
 	void add_extra_frames(int extra_frames);
-
+#ifdef USE_SCREEN_FILTER
+	bool screen_skip_line;
+#endif
 	bool openFile(String file);
 
 	void set_screen_message(String message);
+
+	void set_disk_status(int drvNo, int status);
+
+	String getFilePathSuffix();
 
 //シリアル入力からの入力を内部的に処理するための値。
 #define M5KEY_UP 0xB5
