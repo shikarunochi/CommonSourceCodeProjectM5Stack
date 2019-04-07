@@ -1193,7 +1193,8 @@ bool MEMORY_EX::bios_ret_z80(uint16_t PC, pair32_t* af, pair32_t* bc, pair32_t* 
 					}
 					d_map[1] = d_slot[read_data8(0xf342) & 0x0f];
 					for(int i = 0; i < MSX_SECTOR_SIZE/*disk[drv]->sector_size.sd*/; i++) {
-						disk[drv]->sector[i] = read_data8(addr++);
+						//disk[drv]->sector[i] = read_data8(addr++);
+						disk[drv]->writeSector(i, read_data8(addr++));
 					}
 					d_map[1] = d_fdpat;
 					B--;
@@ -1229,7 +1230,8 @@ bool MEMORY_EX::bios_ret_z80(uint16_t PC, pair32_t* af, pair32_t* bc, pair32_t* 
 					}
 					d_map[1] = d_slot[read_data8(0xf342) & 0x0f];
 					for(int i = 0; i < MSX_SECTOR_SIZE/*disk[drv]->sector_size.sd*/; i++) {
-						write_data8(addr++, disk[drv]->sector[i]);
+						write_data8(addr++, disk[drv]->readSector(i));
+						//write_data8(addr++, disk[drv]->sector[i]);
 					}
 					d_map[1] = d_fdpat;
 					B--;
@@ -1270,42 +1272,61 @@ bool MEMORY_EX::bios_ret_z80(uint16_t PC, pair32_t* af, pair32_t* bc, pair32_t* 
 				AF = 0x0401; // data crc error
 				return true;
 			}
-			int bytes_per_sector = (int)disk[drv]->sector[0x0c] * 256 + disk[drv]->sector[0x0b];
-			int sectors_per_disk = (int)disk[drv]->sector[0x14] * 256 + disk[drv]->sector[0x13];
-			int sectors_per_fat  = (int)disk[drv]->sector[0x17] * 256 + disk[drv]->sector[0x16];
-			int reserved_sectors = (int)disk[drv]->sector[0x0f] * 256 + disk[drv]->sector[0x0e];
+			int bytes_per_sector = (int)disk[drv]->readSector(0x0c) * 256 + disk[drv]->readSector(0x0b);
+			int sectors_per_disk = (int)disk[drv]->readSector(0x14) * 256 + disk[drv]->readSector(0x13);
+			int sectors_per_fat  = (int)disk[drv]->readSector(0x17) * 256 + disk[drv]->readSector(0x16);
+			int reserved_sectors = (int)disk[drv]->readSector(0x0f) * 256 + disk[drv]->readSector(0x0e);
+			//int bytes_per_sector = (int)disk[drv]->sector[0x0c] * 256 + disk[drv]->sector[0x0b];
+			//int sectors_per_disk = (int)disk[drv]->sector[0x14] * 256 + disk[drv]->sector[0x13];
+			//int sectors_per_fat  = (int)disk[drv]->sector[0x17] * 256 + disk[drv]->sector[0x16];
+			//int reserved_sectors = (int)disk[drv]->sector[0x0f] * 256 + disk[drv]->sector[0x0e];
 			int addr = HL + 1, num, bits;
 			d_map[1] = d_slot[read_data8(0xf342) & 0x0f];
-			write_data8(addr++, disk[drv]->sector[0x15]);	// format id [f8h-ffh]
-			write_data8(addr++, disk[drv]->sector[0x0b]);	// sector size
-			write_data8(addr++, disk[drv]->sector[0x0c]);
+			write_data8(addr++, disk[drv]->readSector(0x15));	// format id [f8h-ffh]
+			write_data8(addr++, disk[drv]->readSector(0x0b));	// sector size
+			write_data8(addr++, disk[drv]->readSector(0x0c));
+			//write_data8(addr++, disk[drv]->sector[0x15]);	// format id [f8h-ffh]
+			//write_data8(addr++, disk[drv]->sector[0x0b]);	// sector size
+			//write_data8(addr++, disk[drv]->sector[0x0c]);
+
 			num = (bytes_per_sector >> 5) - 1;
 			for(bits = 0; num & (1 << bits); bits++);
 			write_data8(addr++, num);			// directory mask/shft
 			write_data8(addr++, bits);
-			num = disk[drv]->sector[0x0d] - 1;
+			num = disk[drv]->readSector(0x0d) - 1;
+			//num = disk[drv]->sector[0x0d] - 1;
 			for(bits = 0; num & (1 << bits); bits++);
 			write_data8(addr++, num);			// cluster mask/shift
 			write_data8(addr++, bits + 1);
-			write_data8(addr++, disk[drv]->sector[0x0e]);	// sector # of 1st fat
-			write_data8(addr++, disk[drv]->sector[0x0f]);
-			write_data8(addr++, disk[drv]->sector[0x10]);	// number of fats
-			write_data8(addr++, disk[drv]->sector[0x11]);	// number of dirent-s
-			num = reserved_sectors + disk[drv]->sector[0x10] * sectors_per_fat;
-			num += 32 * disk[drv]->sector[0x11] / bytes_per_sector;
+			write_data8(addr++, disk[drv]->readSector(0x0e));	// sector # of 1st fat
+			write_data8(addr++, disk[drv]->readSector(0x0f));
+			write_data8(addr++, disk[drv]->readSector(0x10));	// number of fats
+			write_data8(addr++, disk[drv]->readSector(0x11));	// number of dirent-s
+			//write_data8(addr++, disk[drv]->sector[0x0e]);	// sector # of 1st fat
+			//write_data8(addr++, disk[drv]->sector[0x0f]);
+			//write_data8(addr++, disk[drv]->sector[0x10]);	// number of fats
+			//write_data8(addr++, disk[drv]->sector[0x11]);	// number of dirent-s
+			num = reserved_sectors + disk[drv]->readSector(0x10) * sectors_per_fat;
+			num += 32 * disk[drv]->readSector(0x11) / bytes_per_sector;
+			//num = reserved_sectors + disk[drv]->sector[0x10] * sectors_per_fat;
+			//num += 32 * disk[drv]->sector[0x11] / bytes_per_sector;
 			write_data8(addr++, num & 0xff);		// sector # of data
 			write_data8(addr++, (num >> 8) & 0xff);
-			num = (sectors_per_disk - num) / disk[drv]->sector[0x0d];
+			num = (sectors_per_disk - num) / disk[drv]->readSector(0x0d);
+			//num = (sectors_per_disk - num) / disk[drv]->sector[0x0d];
 			write_data8(addr++, num & 0xff);		// number of clusters
 			write_data8(addr++, (num >> 8) & 0xff);
-			write_data8(addr++, disk[drv]->sector[0x16]);	// sectors per fat
-			num = reserved_sectors + disk[drv]->sector[0x10] * sectors_per_fat;
+			write_data8(addr++, disk[drv]->readSector(0x16));	// sectors per fat
+			//write_data8(addr++, disk[drv]->sector[0x16]);	// sectors per fat
+			num = reserved_sectors + disk[drv]->readSector(0x10) * sectors_per_fat;
+			//num = reserved_sectors + disk[drv]->sector[0x10] * sectors_per_fat;
 			write_data8(addr++, num & 0xff);		// sector # of dir.
 			write_data8(addr, (num >> 8) & 0xff);
 			d_map[1] = d_fdpat;
 			F &= ~CF;
 			return true;
 		} else if(PC == DSKFMT) {
+			/*
 			// format disk
 			*iff1 |= 1;
 //			int desc = 2 - A;
@@ -1369,6 +1390,7 @@ bool MEMORY_EX::bios_ret_z80(uint16_t PC, pair32_t* af, pair32_t* bc, pair32_t* 
 				memset(disk[drv]->sector, 0xff, 512);
 			}
 			F &= ~CF;
+			*/
 			return true;
 		}
 	}

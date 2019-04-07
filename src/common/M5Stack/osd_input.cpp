@@ -44,9 +44,8 @@ void OSD::update_input()
 {
 	//M5Stackからのキー入力によって状態を変更する
 	checkKeyboard();
-  if(joyPadMode != JOYPAD_NONE){
-    checkJoyStick();
-  }
+  checkJoyStick();
+  
 	M5.update();
   if(joyPadMode == JOYPAD_NONE){
     if (M5.BtnB.wasReleased())
@@ -63,17 +62,17 @@ void OSD::update_input()
     }
   }else{
     //joystick #1, #2 (b0 = up, b1 = down, b2 = left, b3 = right, b4- = buttons
-    if(M5.BtnB.wasPressed()){
+    if(M5.BtnA.wasPressed()){
       joy_status[0] |= 0b010000;
     }
     
-    if(M5.BtnB.wasReleased()){
+    if(M5.BtnA.wasReleased()){
       joy_status[0] &= ~0b010000;
     }
-    if(M5.BtnC.wasPressed()){
+    if(M5.BtnB.wasPressed()){
       joy_status[0] |= 0b100000;
     }
-    if(M5.BtnC.wasReleased()){
+    if(M5.BtnB.wasReleased()){
       joy_status[0] &= ~0b100000;
     }
   }
@@ -261,7 +260,7 @@ void OSD::checkJoyStick(){
       if(Wire.available()){joyPress = Wire.read();}//Press
   }
 
-  if(joyPadMode == JOYPAD_MODE1){
+  if(joyPadMode != JOYPAD_MODE2){
 	  joyX = joy1;
 	  joyY = joy2;
   }else{ //ROTETE

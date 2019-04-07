@@ -5,6 +5,9 @@
 	Author : Takeda.Toshiya
 	Date   : 2012.02.15-
 
+	M5Stack version.
+	modified by shikarunochi 2019.03.24 - 
+
 	[ Z80 ]
 */
 
@@ -1684,6 +1687,8 @@ void Z80::OP_ED(uint8_t code)
 
 void Z80::OP(uint8_t code)
 {
+	//Serial.printf("Z80:%X : %X", PC-1 , code);
+
 	prevpc = PC - 1;
 	icount -= cc_op[code];
 	
@@ -1956,6 +1961,7 @@ void Z80::OP(uint8_t code)
 	default: __assume(0);
 #endif
 	}
+	//Serial.println("DONE");
 }
 
 // main

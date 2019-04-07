@@ -42,8 +42,10 @@ void OSD::initialize_screen()
 	vm_window_width_aspect = WINDOW_WIDTH_ASPECT;
 	vm_window_height_aspect = WINDOW_HEIGHT_ASPECT;
 	
+
 	memset(&vm_screen_buffer, 0, sizeof(bitmap_t));
 	initialize_screen_buffer(&vm_screen_buffer, vm_screen_width , vm_screen_height , 0);
+	
 	draw_screen_buffer = &vm_screen_buffer;
 
 	screenOffsetX = 0;

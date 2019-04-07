@@ -206,12 +206,12 @@ public:
 class SLOT_SUBROM : public DEVICE
 {
 private:
-	uint8_t wdmy[0x2000];
-	uint8_t rdmy[0x2000];
+	uint8_t* wdmy;//[0x2000];
+	uint8_t* rdmy;//[0x2000];
 	uint8_t* wbank[8];
 	uint8_t* rbank[8];
 #if defined(_MSX2_VARIANTS)
-	uint8_t rom[0x4000];
+	uint8_t* rom;//[0x4000];
 #else
 	uint8_t rom[0xc000];
 #endif
@@ -220,6 +220,12 @@ public:
 	SLOT_SUBROM(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
 		set_device_name(_T("Sub ROM"));
+		wdmy = (uint8_t* )ps_malloc(0x2000);
+		rdmy = (uint8_t*)ps_malloc(0x2000);
+		#if defined(_MSX2_VARIANTS)
+	    rom = (uint8_t*)ps_malloc(0x4000);
+		#endif
+
 	}
 	~SLOT_SUBROM() {}
 	
