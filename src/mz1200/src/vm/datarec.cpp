@@ -1200,7 +1200,7 @@ int DATAREC::load_tap_image()
 
 int DATAREC::load_mzt_image()
 {
-	sample_rate = 48000 / 4;
+	sample_rate = 48000;
 	sample_usec = 1000000. / sample_rate;
 	
 	// get file size
@@ -2220,12 +2220,12 @@ uint8_t DATAREC::getNextTapeBuffer(){
 }
 
 void DATAREC::setOnBit(){//250us / 250us
-	onBitCount = 6;//24 / 4;
-	offBitCount = 7;//29 / 4;
+	onBitCount = 24;
+	offBitCount = 29;
 }
 void DATAREC::setOffBit(){ //125us 125us
-	onBitCount = 3;//11 / 4;
-	offBitCount = 4;//15 / 4;
+	onBitCount = 11;
+	offBitCount =15;
 }
 
 int DATAREC::fetchNextTapeBuffer(){
