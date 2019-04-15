@@ -113,6 +113,9 @@ extern void vram_write(int addr, uint8_t n);
 	Author : umaiboux
 	Date   : 2014.12.XX -
 
+	M5Stack version.
+	modified by shikarunochi 2019.03.30 -
+	
 	[ V99x8 ]
 */
 
@@ -128,8 +131,8 @@ private:
 	// output signals
 	outputs_t outputs_irq;
 	
-	uint8_t* vram;//[1024*128];
-	scrntype_t* screen;//[SCREEN_WIDTH*SCREEN_HEIGHT];
+	uint8_t *vram;//[1024*128];
+	scrntype_t *screen;//[SCREEN_WIDTH*SCREEN_HEIGHT];
 	bool intstat;
 	
 	void set_intstat(bool val);
@@ -160,8 +163,6 @@ public:
 	{
 		initialize_output_signals(&outputs_irq);
 		set_device_name(_T("V99x8 VDP"));
-		vram = (uint8_t*)ps_malloc(1024*128);
-	    screen = (scrntype_t*)ps_malloc(SCREEN_WIDTH*SCREEN_HEIGHT);
 	}
 	~V99X8() {}
 	

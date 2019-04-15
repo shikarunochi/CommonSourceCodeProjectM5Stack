@@ -272,7 +272,7 @@ void OSD::checkJoyStick(){
     return; 
   }
 
-  if(joyPadMode == JOYPAD_MODE1){
+  if(joyPadMode != JOYPAD_MODE2){
     //RIGHT  
     if(joyX < 80){
       joy_status[0] |= 0b001000;

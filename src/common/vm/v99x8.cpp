@@ -20,6 +20,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+
+	M5Stack version.
+	modified by shikarunochi 2019.03.30 -
  */
 
 //#include "../../config.h"
@@ -55,9 +58,11 @@ static int latch2;
 #define Z80_INT 0x0038
 //#define Z80_NMI 0x0066
 
-#define	MD_BPP 32
+//#define	MD_BPP 32
+#define	MD_BPP 16
 #define md_maprgb15(R,G,B) RGB_COLOR(((R) << 3), ((G) << 3), ((B) << 3))
-#define md_video_pixbytes(n) (n*32/8)
+//#define md_video_pixbytes(n) (n*32/8)
+#define md_video_pixbytes(n) (n*16/8)
 #define md_refresh_sync() (TRUE)
 #define	md_video_defaultopt() (0)
 int md_video_pitch(void);	// the length of a row of pixels in bytes
@@ -65,7 +70,9 @@ uint8_t *md_video_lockline(int x, int y, int w, int h);
 void md_video_unlockline(void) {}
 void md_video_update(int n, /*md_video_rect_t*/void *rp);
 void md_video_fill(int x, int y, int w, int h, uint32_t c);
-typedef uint32_t md_pixel_t;
+//typedef uint32_t md_pixel_t;
+typedef uint16_t md_pixel_t;
+
 
 // from "md_depend.h" of Zodiac
 typedef struct
@@ -180,6 +187,7 @@ static void v99x8_interleave(void)
 
 static void v99x8_mode_set(int n)
 {
+	Serial.printf("v99x8_mode_set:%d\n", n);
 	v99x8_screen_mode_t mode[] =
 	{
 		{TRUE, FALSE, 0, 0},  /* V99X8_SCREEN_0 */
@@ -207,7 +215,7 @@ static void v99x8_mode_set(int n)
 		else
 			v99x8.scr = V99X8_SCREEN_C;
 	}
-
+	Serial.printf("v99x8_mode_set v99x8.scr :%d\n", v99x8.scr );
 	memcpy(&v99x8.mode, &mode[v99x8.scr], sizeof(v99x8_screen_mode_t));
 }
 
@@ -506,7 +514,7 @@ void v99x8_init(void)
 	v99x8_ctrl_init();
 	v99x8_status_init();
 
-	v99x8.f_zoom = FALSE; 
+/*	v99x8.f_zoom = FALSE; */
 
 	v99x8_vram_init();
 
@@ -586,7 +594,7 @@ int V99X8::hsync(int v/*void*/)
 			v99x8.status[2] |= 0x40;    /* VBlank on */
 
 			v99x8.status[1] &= ~0x01;   /* ?? H-sync off*/
-			z80_intreq(Z80_NOINT);      /* ?? H-sync �� clear */
+			z80_intreq(Z80_NOINT);      /* ?? H-sync を clear */
 
 /* XXX sprite check */
 			break;
@@ -604,7 +612,7 @@ int V99X8::hsync(int v/*void*/)
 			v99x8.status[2] &= ~0x40;   /* VBlank off */
 			v99x8.status[0] &= ~0x40;   /* 5sprit off */
 			v99x8.status[0] &= ~0x80;   /* Vsync off */
-			z80_intreq(Z80_NOINT);      /* ?? V-sync �� clear */
+			z80_intreq(Z80_NOINT);     /* ?? V-sync を clear */
 
 			/*if (flag_frame)
 				v99x8_refresh_clear();*/ // deleted by umaiboux
@@ -1720,19 +1728,25 @@ static void v99x8_pallete_init(void)
 		v99x8_pallete_set(i, inipal[i][0], inipal[i][1], inipal[i][2]);
 }
 
+
+
+
 #define	V99X8_WIDTH  (256 + 15)
 #define	V99X8_HEIGHT (212 + 15)
 
-static uint8_t *tbl_yjk_b;//[32 * 64 * 64], 
+
+static uint8_t *tbl_yjk_b;//[32 * 64 * 64];
 static uint8_t tbl_yjk_rg[62 + 32];
 static uint8_t blackbuf[256];      /* sprite 非表示用バッファ */
 
 
 void v99x8_refresh_init(void)
 {
-	tbl_yjk_b = (uint8_t*)ps_malloc(32 * 64 * 64); 
 	int i;
 	md_video_mode_t	mode;
+	if(tbl_yjk_b == NULL){
+		tbl_yjk_b = (uint8_t *)ps_malloc(32 * 64 * 64);
+	}
 
 	v99x8_refresh.width  = V99X8_WIDTH;
 	v99x8_refresh.height = V99X8_HEIGHT;
@@ -1885,12 +1899,12 @@ static __inline__ void pixel_put(void *pb, int n, uint32_t p1)
 		*p = (*p & ~mask) | (pix2bpp & mask);
 		break;
 
-/* XXX 2bpp �Ή����@
+/* XXX 2bpp 対応方法
  *
- *  1. �܂��Ή����� 2bit �� & �� 0 �N���A����
- *  2. ���ɁA2bit �� | �ŉ�����
+ *  1. まず対応する 2bit を & で 0 クリアする
+ *  2. 次に、2bit を | で加える
  *
- * �Ƃ����菇���K�v�B�Ή��͌���ɂ�.... --�k
+ * という手順が必要。対応は後日にて.... --Ｌ
  */
 
 	}
@@ -2146,7 +2160,7 @@ void V99X8::v99x8_refresh_sc0(int y, int h)
 				pixel_put(pbuf, 4, (a & 0x08)? fg : bg);
 				pixel_put(pbuf, 5, (a & 0x04)? fg : bg);
 				pbuf += md_video_pixbytes(6);
-			}
+			  }
 	  	}
 		pbuf += pp;
 	}
@@ -2714,6 +2728,9 @@ void	V99X8::v99x8_refresh_scx(int y, int h)
 
 void V99X8::initialize()
 {
+	vram = (uint8_t *)ps_malloc(1024*128);
+	screen = (scrntype_t *)ps_malloc(SCREEN_WIDTH * SCREEN_HEIGHT * 4);
+
 	// register event
 	register_vline_event(this);
 
@@ -2810,7 +2827,8 @@ void V99X8::z80_intreq(int a)
 
 int V99X8::md_video_pitch(void)
 {
-	return SCREEN_WIDTH*4;
+	//return SCREEN_WIDTH*4;
+	return SCREEN_WIDTH * 2;
 }
 
 uint8_t *V99X8::md_video_lockline(int x, int y, int w, int h)
@@ -2818,7 +2836,7 @@ uint8_t *V99X8::md_video_lockline(int x, int y, int w, int h)
 	return (uint8_t*)(screen+y*SCREEN_WIDTH+x);
 #if 0
 	if (SDL_MUSTLOCK(video.screen))
-		SDL_LockSurface(video.screen); /* �߂�l�`�F�b�N�H */
+		SDL_LockSurface(video.screen); /* 戻り値チェック？ */
 
 	return (Uint8_t *)video.screen->pixels
 	       + video.screen->format->BytesPerPixel * (video.w + x)
@@ -2832,14 +2850,17 @@ void V99X8::md_video_update(int n, /*md_video_rect_t*/void *rp)
 		scrntype_t *dst;
 		int y = 0;
 		int h = SCREEN_HEIGHT;
-		for(;h>0; h-=2) {
+		//for(;h>0; h-=2) {
+		for(;h>0; h-=1) {
 			if((dst = emu->get_screen_buffer(y)) != NULL) {
-			memcpy(dst, screen+y*SCREEN_WIDTH, SCREEN_WIDTH*4);
+				//memcpy(dst, screen+y*SCREEN_WIDTH, SCREEN_WIDTH*4);
+				memcpy(dst, screen+y*SCREEN_WIDTH, SCREEN_WIDTH*2);
 			}
-			if((dst = emu->get_screen_buffer(y + 1)) != NULL) {
-				memcpy(dst, screen+y*SCREEN_WIDTH, SCREEN_WIDTH*4);
-			}
-			y+=2;
+			//if((dst = emu->get_screen_buffer(y + 1)) != NULL) {
+			//	memcpy(dst, screen+y*SCREEN_WIDTH, SCREEN_WIDTH*4);
+			//}
+			//y+=2;
+			y+=1;
 		}
 	}
 	else {
