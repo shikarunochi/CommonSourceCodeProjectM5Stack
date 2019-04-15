@@ -12,8 +12,10 @@ binファイルをSDカードに入れておけば、LovyanLauncher から読み
 > https://github.com/lovyan03/M5Stack_LovyanLauncher
 
 ---
+
 ### イメージファイルの置き場所
 SDファイル直下の「機種名」+「ROM」が、各機種のROMイメージフォルダになります。「/sc3000ROM」「/pyutaROM」「/m5ROM」という感じです。
+
 ---
 
 ### ビルド方法
