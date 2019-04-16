@@ -4,6 +4,9 @@
 	Author : tanam
 	Date   : 2016.08.14-
 
+	M5Stack version.
+	modified by shikarunochi 2019.04.15 -
+	
 	[ virtual machine ]
 */
 

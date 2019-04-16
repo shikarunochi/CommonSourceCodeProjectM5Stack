@@ -13,6 +13,7 @@
 #include "../emu.h"
 #include "../fifo.h"
 #include "../fileio.h"
+#include "osd.h"
 
 // emulation core
 EMU* emu;
@@ -31,7 +32,7 @@ int emuMain()
     M5.Lcd.fillScreen(TFT_BLACK);
     M5.Lcd.setCursor(0, 0);
 	M5.Lcd.println(String(DEVICE_NAME) + " Emulator for M5Stack FIRE");
-    M5.Lcd.println("Version." + String(__DATE__) + "." + String(__TIME__));
+    M5.Lcd.println("Version." + getEmulatorVersion());
     delay(2000);
 	M5.Lcd.fillScreen(TFT_BLACK);
 	
@@ -105,3 +106,6 @@ int emuMain()
 	return 0;
 }
 
+String getEmulatorVersion(){
+	return  String(__DATE__) + "." + String(__TIME__);
+}

@@ -523,6 +523,8 @@ public:
 	void load_sound_file(int id, const _TCHAR *name, int16_t **data, int *dst_size);
 	void free_sound_file(int id, int16_t **data);
 #endif
+    void set_screen_message(String message);
+	void set_disk_status(int drvNo, int status);
 };
 
 #endif

@@ -393,6 +393,7 @@ void OSD::systemMenu()
   {
     if (needRedraw == true)
     {
+      M5.Lcd.setTextSize(2);
       M5.Lcd.setCursor(0, 0);
       for (int index = 0; index < menuItemCount; index++)
       {
@@ -424,6 +425,12 @@ void OSD::systemMenu()
       M5.Lcd.drawCentreString("SELECT", 159, 240 - 17, 1);
       M5.Lcd.drawRect(220, 240 - 19, 100, 18, TFT_WHITE);
       M5.Lcd.drawCentreString("DOWN", 266, 240 - 17, 1);
+
+      M5.Lcd.setTextSize(1);
+      M5.Lcd.setCursor(0, 210);
+      M5.Lcd.println(String(DEVICE_NAME) + " Emulator");
+      M5.Lcd.setCursor(200, 210);
+      M5.Lcd.print(getEmulatorVersion());
       needRedraw = false;
     }
     M5.update();

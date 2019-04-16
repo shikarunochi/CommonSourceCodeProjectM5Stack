@@ -516,4 +516,5 @@ public:
 
 };
 
+String getEmulatorVersion();
 #endif

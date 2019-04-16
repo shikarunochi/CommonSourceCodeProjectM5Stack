@@ -4,6 +4,9 @@
 	Author : Takeda.Toshiya
 	Date   : 2006.08.21 -
 
+	M5Stack version.
+	modified by shikarunochi 2019.04.15 -
+	
 	[ memory ]
 */
 

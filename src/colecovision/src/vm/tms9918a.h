@@ -6,6 +6,9 @@
 	Date   : 2006.08.18 -
 	         2007.07.21 -
 
+	M5Stack version.
+	modified by shikarunochi 2019.04.15 -
+	
 	[ TMS9918A ]
 */
 
