@@ -191,7 +191,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	//event->set_context_sound(psg);
 #endif
 	//event->set_context_sound(pcm);
-	//event->set_context_sound(drec);
+	event->set_context_sound(drec);
 #if defined(LDC_SLOT)
 	//event->set_context_sound(ldp);
 #endif
@@ -204,7 +204,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	//slot_cart[0]->set_context_sound(sound_cart[0]);
 	//slot_cart[1]->set_context_sound(sound_cart[1]);
 	
-	//drec->set_context_ear(psg, SIG_AY_3_891X_PORT_A, 0x80);
+	drec->set_context_ear(psg, SIG_AY_3_891X_PORT_A, 0x80);
 	pio->set_context_port_a(memory, SIG_MEMORY_SEL, 0xff, 0);
 	pio->set_context_port_c(keyboard, SIG_KEYBOARD_COLUMN, 0x0f, 0);
 	pio->set_context_port_c(not_remote, SIG_NOT_INPUT, 0x10, 0);

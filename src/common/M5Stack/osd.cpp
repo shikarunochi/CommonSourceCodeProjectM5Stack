@@ -322,7 +322,9 @@ String OSD::selectFile()
                 needRedraw = true;
             }
         }
-
+        if(M5.BtnB.pressedFor(1000)){
+            btnBLongPress = true; //長押しの場合、後で処理を変える。（Bドライブにセットする、など）
+        }
         if (M5.BtnB.wasReleased())
         {
             if (selectIndex == 0)

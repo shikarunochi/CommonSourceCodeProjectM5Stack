@@ -34,6 +34,7 @@ void OSD::initialize_input()
   joyPadMode = JOYPAD_NONE;
   pressedKey = 0;
   keyInputConfig();
+  btnBLongPress = false;
 }
 
 void OSD::release_input()
@@ -330,6 +331,7 @@ bool OSD::openFile(String file){
       ||fileName.endsWith(".P6")
       ||fileName.endsWith(".CAS")
       ||fileName.endsWith(".MZT")
+      ||fileName.endsWith(".TAP")
     ){
       vm->play_tape(0, cFileName);
       M5.Lcd.println("PLAY TAPE");
@@ -341,8 +343,14 @@ bool OSD::openFile(String file){
       ||fileName.endsWith(".D88")
       ||fileName.endsWith(".1DD")
     ){
-      vm->open_floppy_disk(0, cFileName, 0);
-      M5.Lcd.println("SET FLOPPY DISK");
+      if(btnBLongPress == true && MAX_DRIVE >= 2)
+      {
+        vm->open_floppy_disk(1, cFileName, 0);
+        M5.Lcd.println("SET FLOPPY DISK:Drive[2]");
+      }else{
+        vm->open_floppy_disk(0, cFileName, 0);
+        M5.Lcd.println("SET FLOPPY DISK");
+      }
       openFlag = true;
     }
 #endif
@@ -356,6 +364,7 @@ bool OSD::openFile(String file){
     M5.Lcd.println(file);
     delay(2000);
   }
+  btnBLongPress = false;
   return true;
 }
 

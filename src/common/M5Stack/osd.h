@@ -77,6 +77,7 @@ private:
 	int keyPress(int keyCode);
 	uint8_t pressedVMKey;
 	uint8_t keyCheckFrameCount;
+	bool btnBLongPress;
 
 	int pressedKey;
 	
