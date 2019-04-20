@@ -32,6 +32,7 @@
 	#pragma comment(lib, "shlwapi.lib")
 #elif defined(_M5Stack)
 	#include<M5Stack.h>
+	#include "emu_config.h"
 #else
 	#include <time.h>
 #endif
@@ -1037,7 +1038,7 @@ const _TCHAR *DLL_PREFIX get_application_path()
 			my_tcscpy_s(app_path, _MAX_PATH, _T(".\\"));
 		}
 #elif defined(_M5Stack)
-	sprintf(app_path,"/%sROM/",CONFIG_NAME);
+	sprintf(app_path,"/%sROM%s/",CONFIG_NAME, config.filePathSuffix);
 	return (const _TCHAR *)app_path;
 #else
 #if defined(Q_OS_WIN)

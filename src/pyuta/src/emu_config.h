@@ -244,6 +244,7 @@ typedef struct {
 		int render_minor_version;
 		int rendering_type;
 	#endif
+	char filePathSuffix[10];
 } config_t;
 
 extern DLL_PREFIX config_t config;

@@ -115,11 +115,11 @@ void initialize_config()
 	config.sound_latency = 1;	// 100msec
 	config.sound_strict_rendering = true;
 	#ifdef USE_FLOPPY_DISK
-		config.sound_noise_fdd = true;
+		config.sound_noise_fdd = false;
 	#endif
 	#ifdef USE_TAPE
-		config.sound_noise_cmt = true;
-		config.sound_play_tape = true;
+		config.sound_noise_cmt = false;
+		config.sound_play_tape = false;
 	#endif
 	
 	// input
@@ -298,7 +298,7 @@ void load_config(const _TCHAR* config_path)
 	
 	// filter
 	#ifdef USE_SCREEN_FILTER
-		config.filter_type = MyGetPrivateProfileInt(_T("Screen"), _T("FilterType"), config.filter_type, config_path);
+		config.filter_type = 0;// MyGetPrivateProfileInt(_T("Screen"), _T("FilterType"), config.filter_type, config_path);
 	#endif
 	
 	// sound
@@ -531,7 +531,7 @@ void save_config(const _TCHAR* config_path)
 	
 	// filter
 	#ifdef USE_SCREEN_FILTER
-		MyWritePrivateProfileInt(_T("Screen"), _T("FilterType"), config.filter_type, config_path);
+		//MyWritePrivateProfileInt(_T("Screen"), _T("FilterType"), config.filter_type, config_path);
 	#endif
 	
 	// sound
