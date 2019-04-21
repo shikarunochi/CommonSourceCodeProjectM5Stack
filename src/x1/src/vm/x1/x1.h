@@ -46,10 +46,11 @@
 // 15KHz
 #define FRAMES_PER_SEC		61.94
 #define LINES_PER_FRAME 	258
+
 #define CHARS_PER_LINE		56
 #define HD46505_CHAR_CLOCK	(VDP_CLOCK / 32.0)
 //#endif
-#define CPU_CLOCKS		4000000
+#define CPU_CLOCKS		4000000 * 4
 //#define SCREEN_WIDTH		640
 #define SCREEN_WIDTH		320
 //#define SCREEN_HEIGHT		400

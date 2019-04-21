@@ -91,7 +91,7 @@ int emuMain()
 				if((int)(next_time - current_time) >= 10) {
 					sleep_period = next_time - current_time;
 				}
-			} else if(++skip_frames > 2 /* (int)emu->get_frame_rate()*/) {
+			} else if(++skip_frames > 1 /* (int)emu->get_frame_rate()*/) {
 				// update window at least once per 1 sec in virtual machine time
 				draw_frames += emu->draw_screen();
 				skip_frames = 0;

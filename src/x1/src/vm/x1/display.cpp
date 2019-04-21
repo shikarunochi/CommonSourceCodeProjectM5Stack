@@ -9,9 +9,6 @@
 	Author : Takeda.Toshiya
 	Date   : 2009.03.14-
 
-	M5Stack version.
-	modified by shikarunochi 2019.04.18 - 
-
 	[ display ]
 */
 #include "display.h"
@@ -97,13 +94,13 @@ void DISPLAY_::initialize()
 	for(int i = 0; i < 8;i++){
 		for(int j = 0;j < 8;j++){
 			palette_pc_half[i][j] =  RGB_COLOR(
-				(((i & 2) ? 255 : 0) + ((j & 2) ? 255 : 0)) / 2, 
-				(((i & 4) ? 255 : 0) + ((j & 4) ? 255 : 0)) / 2, 
-			    (((i & 1) ? 255 : 0) + ((j & 2) ? 255 : 0)) / 2);	// text
-			palette_pc_half[i + 8][j + 8] =  RGB_COLOR(
-				(((i & 2) ? 255 : 0) + ((j & 2) ? 255 : 0)) / 2, 
-				(((i & 4) ? 255 : 0) + ((j & 4) ? 255 : 0)) / 2, 
-			    (((i & 1) ? 255 : 0) + ((j & 2) ? 255 : 0)) / 2);		// cg
+					(((i & 2) ? 255 : 0) + ((j & 2) ? 255 : 0)) / 2, 
+					(((i & 4) ? 255 : 0) + ((j & 4) ? 255 : 0)) / 2, 
+					(((i & 1) ? 255 : 0) + ((j & 1) ? 255 : 0)) / 2);	// text
+				palette_pc_half[i + 8][j + 8] =  RGB_COLOR(
+					(((i & 2) ? 255 : 0) + ((j & 2) ? 255 : 0)) / 2, 
+					(((i & 4) ? 255 : 0) + ((j & 4) ? 255 : 0)) / 2, 
+					(((i & 1) ? 255 : 0) + ((j & 1) ? 255 : 0)) / 2);		// cg
 		}
 	}
 

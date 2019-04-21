@@ -135,7 +135,7 @@ void OSD::checkKeyboard()
           return;//キーPress状態で2フレームキープ
         }
         keyCheckFrameCount = 0;
-        //vm->key_up(VK_SHIFT);
+        vm->key_up(VK_SHIFT);
 		    vm->key_up(pressedVMKey);
 		    key_status[VK_SHIFT] &= 0x7f;
         key_status[VK_CONTROL] &= 0x7f;
@@ -234,7 +234,7 @@ int OSD::keyPress(int m5StackKeyCode)
 		pressedVMKey = M5StackKeyMap[m5StackKeyCode][0];
 		//shiftFlag
 		if(M5StackKeyMap[m5StackKeyCode][1] == 1){
-			//vm->key_down(VK_SHIFT, false); 
+			vm->key_down(VK_SHIFT, false); 
 			key_status[VK_SHIFT] = 0x80; //SHIFTを先行で入力しておく
 		}else if (M5StackKeyMap[m5StackKeyCode][1] == 2){
       key_status[VK_CONTROL] = 0x80; //CTRLを先行で入力しておく
