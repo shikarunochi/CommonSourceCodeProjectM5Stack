@@ -112,23 +112,23 @@ void MB8877::initialize()
 	
 	// initialize noise
 	if(d_noise_seek != NULL) {
-		d_noise_seek->set_device_name(_T("Noise Player (FDD Seek)"));
-		if(!d_noise_seek->load_wav_file(_T("FDDSEEK.WAV"))) {
-			if(!d_noise_seek->load_wav_file(_T("FDDSEEK1.WAV"))) {
-				d_noise_seek->load_wav_file(_T("SEEK.WAV"));
-			}
-		}
-		d_noise_seek->set_mute(!config.sound_noise_fdd);
+		//d_noise_seek->set_device_name(_T("Noise Player (FDD Seek)"));
+		//if(!d_noise_seek->load_wav_file(_T("FDDSEEK.WAV"))) {
+		//	if(!d_noise_seek->load_wav_file(_T("FDDSEEK1.WAV"))) {
+		//		d_noise_seek->load_wav_file(_T("SEEK.WAV"));
+		//	}
+		//}
+		//d_noise_seek->set_mute(!config.sound_noise_fdd);
 	}
 	if(d_noise_head_down != NULL) {
-		d_noise_head_down->set_device_name(_T("Noise Player (FDD Head Load)"));
-		d_noise_head_down->load_wav_file(_T("HEADDOWN.WAV"));
-		d_noise_head_down->set_mute(!config.sound_noise_fdd);
+		//d_noise_head_down->set_device_name(_T("Noise Player (FDD Head Load)"));
+		//d_noise_head_down->load_wav_file(_T("HEADDOWN.WAV"));
+		//d_noise_head_down->set_mute(!config.sound_noise_fdd);
 	}
 	if(d_noise_head_up != NULL) {
-		d_noise_head_up->set_device_name(_T("Noise Player (FDD Head Unload)"));
-		d_noise_head_up->load_wav_file(_T("HEADUP.WAV"));
-		d_noise_head_up->set_mute(!config.sound_noise_fdd);
+		//d_noise_head_up->set_device_name(_T("Noise Player (FDD Head Unload)"));
+		//d_noise_head_up->load_wav_file(_T("HEADUP.WAV"));
+		//d_noise_head_up->set_mute(!config.sound_noise_fdd);
 	}
 	
 	// initialize fdc
@@ -1085,7 +1085,6 @@ void MB8877::cmd_readdata(bool first_sector)
 	}
 	register_my_event(EVENT_SEARCH, time);
 	cancel_my_event(EVENT_LOST);
-	emu->set_disk_status(1);
 }
 
 void MB8877::cmd_writedata(bool first_sector)
@@ -1107,7 +1106,6 @@ void MB8877::cmd_writedata(bool first_sector)
 	}
 	register_my_event(EVENT_SEARCH, time);
 	cancel_my_event(EVENT_LOST);
-	emu->set_disk_status(2);
 }
 
 void MB8877::cmd_readaddr()

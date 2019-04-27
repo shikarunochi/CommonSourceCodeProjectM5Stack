@@ -35,7 +35,7 @@
 #endif
 
 // device informations for virtual machine (x1)
-#define VDP_CLOCK		28636363
+#define VDP_CLOCK		28636363 
 //#ifdef _X1TURBO_FEATURE
 //24KHz
 //#define FRAMES_PER_SEC	55.49

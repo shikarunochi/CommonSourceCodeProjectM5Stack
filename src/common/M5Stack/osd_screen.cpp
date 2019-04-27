@@ -9,8 +9,12 @@
 
 	[ M5Stack screen ]
 */
-
 #include "osd.h"
+
+#ifdef USE_DMA_DRAW
+#include <Lcd_dma.h> //https://github.com/MhageGH/M5Stack_LCD_DMA
+#endif
+
 
 #define REC_VIDEO_SUCCESS	1
 #define REC_VIDEO_FULL		2
@@ -22,6 +26,10 @@
 static TFT_eSprite fb = TFT_eSprite(&M5.Lcd);
 #endif
 
+#ifdef USE_DMA_DRAW
+Lcd_dma *lcd_dma;
+#endif
+
 void OSD::initialize_screen()
 {
 	Serial.println("Initializing Graphic System ... ");
@@ -30,6 +38,11 @@ void OSD::initialize_screen()
     fb.createSprite(320, 240);
     fb.fillSprite(TFT_BLACK);
     fb.pushSprite(0, 0);
+#endif
+#ifdef USE_DMA_DRAW
+    lcd_dma = new Lcd_dma(320, 40);
+    lcd_dma->SetBrightness(20);
+    lcd_dma->fillScreen(0);
 #endif
 	//host_window_width = WINDOW_WIDTH;
 	//host_window_height = WINDOW_HEIGHT;
@@ -42,7 +55,6 @@ void OSD::initialize_screen()
 	vm_window_width_aspect = WINDOW_WIDTH_ASPECT;
 	vm_window_height_aspect = WINDOW_HEIGHT_ASPECT;
 	
-
 	memset(&vm_screen_buffer, 0, sizeof(bitmap_t));
 	initialize_screen_buffer(&vm_screen_buffer, vm_screen_width , vm_screen_height , 0);
 	
@@ -75,6 +87,9 @@ void OSD::set_vm_screen_lines(int lines)
 {
 //	set_vm_screen_size(vm_screen_width, lines, vm_window_width, vm_window_height, vm_window_width_aspect, vm_screen_height);
 }
+void OSD::set_vm_screen_size(int, int, int, int, int, int){
+	//set_vm_screen_size(vm_screen_width, lines, vm_window_width, vm_window_height, vm_window_width_aspect, vm_screen_height);
+}
 
 scrntype_t* OSD::get_vm_screen_buffer(int y)
 {
@@ -86,7 +101,14 @@ int OSD::draw_screen()
 	draw_screen_buffer = &vm_screen_buffer;
 	scrntype_t* lpBmp =  draw_screen_buffer->lpBmp;
 #ifdef USE_DRAWBITMAP
+
+#ifdef USE_DMA_DRAW
+	dmaDraw((uint16_t *)lpBmp);
+#else
 	M5.Lcd.drawBitmap(screenOffsetX, screenOffsetY, vm_screen_width, vm_screen_height, (uint16_t *)lpBmp);
+#endif
+
+	
 	if(preScreenMessage.equals(screenMessage)==false){
 		M5.Lcd.fillRect(0, 220, 320,20,TFT_BLACK);
 		preScreenMessage = screenMessage;
@@ -113,7 +135,7 @@ int OSD::draw_screen()
 					diskStatus[i] = 0;
 					break;
 			}
-			M5.Lcd.fillRect(1 + 0 + i * 5,235,4,4,color);
+			M5.Lcd.fillRect(1 + 0 + i * 10,235,8,4,color);
 		}
 	}
 	
@@ -154,9 +176,29 @@ void OSD::set_screen_message(String message){
 }
 
 void OSD::set_disk_status(int drvNo, int status){
+	//Serial.printf("set_disk_status:%d :%d\n",drvNo, status);
 	if(diskStatus[drvNo] != status){
 		diskStatus[drvNo] = status;
 	}else{
 		diskStatus[drvNo] = 3;//同じstatusが連続で来たら一旦消して点滅に見せる
 	}
 }
+
+#ifdef USE_DMA_DRAW
+void OSD::dmaDraw(uint16_t* lpBmp){
+	 
+	 for(int y = 0; y < SCREEN_HEIGHT;y = y + 40){
+		 uint16_t *framebuffer = lcd_dma->GetFramebuffer();
+		 for(int i = 0;i < 40;i++){
+			 for(int x = 0;x < 320;x++){
+				 if(y < SCREEN_HEIGHT){
+				 	framebuffer[i * 320 + x] = lpBmp[(y + i) * 320 + x];
+				 }else{
+					 framebuffer[i * 320 + x] = 0;
+				 }
+			 }
+		}
+		lcd_dma->Flip(0, y + screenOffsetY);
+	 }
+}
+#endif

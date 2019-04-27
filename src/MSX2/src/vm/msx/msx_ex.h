@@ -142,7 +142,7 @@
 //#define FRAMES_PER_SEC		60
 #define FRAMES_PER_SEC		30
 #define LINES_PER_FRAME		262
-#define CPU_CLOCKS		3579545
+#define CPU_CLOCKS		3579545 
 #if !defined(_MSX1_VARIANTS)
 #if defined(_MSX_VDP_MESS)
 //#define SCREEN_WIDTH		(544)	// v99x8_device::HVISIBLE

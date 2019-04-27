@@ -208,6 +208,7 @@ public:
 	}
 	scrntype_t* get_vm_screen_buffer(int y);
 	int draw_screen();
+	void dmaDraw(scrntype_t* lpBmp);
 
 	// common sound[Dummy]
 	void update_sound(int* extra_frames){};
