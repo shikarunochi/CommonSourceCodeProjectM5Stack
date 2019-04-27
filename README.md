@@ -8,6 +8,8 @@
 Common Source Code Project for M5Stack FIRE
 http://shikarunochi.matrix.jp/?p=3006
 
+動作速度は実機の数分の１になりますので、ゲームなどのプレイは難しいと思います。「こんなに小さいM5Stack FIRE で過去のマシンが動いている！」ということ自体を楽しむのが目的です。
+
 ### ビルド済みの bin ファイル
 https://github.com/shikarunochi/CommonSourceCodeProjectM5Stack/tree/master/bin
 
