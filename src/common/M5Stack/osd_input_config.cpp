@@ -316,7 +316,17 @@ M5StackKeyMap[M5KEY_INSERT][0]='O';
 M5StackKeyMap[M5KEY_INSERT][1]=2;//+Ctlr
 #endif
 
-
+#if defined(_BMJR)
+M5StackKeyMap[M5KEY_UP][0]=0xc0; //@
+M5StackKeyMap[M5KEY_UP][1]=1;//+Shift
+M5StackKeyMap[M5KEY_DOWN][0]=0xdb; // [
+M5StackKeyMap[M5KEY_DOWN][1]=1;//+Shift
+M5StackKeyMap[M5KEY_LEFT][0]=0xde;// ^
+M5StackKeyMap[M5KEY_LEFT][1]=1;//+Shift
+M5StackKeyMap[M5KEY_RIGHT][0]=0xdc;// 
+M5StackKeyMap[M5KEY_RIGHT][1]=1;//+Shift
+M5StackKeyMap[M5KEY_BACKSPACE][0]=0x2E;
+#endif
 
 
 }

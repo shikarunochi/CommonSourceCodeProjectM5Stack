@@ -361,7 +361,13 @@ bool OSD::openFile(String file){
       openFlag = true;
     }
 #endif
-
+#if defined(_MZ800) || defined(_MZ1500)
+    if(fileName.endsWith(".Q20")){
+      vm->open_quick_disk(0, cFileName);
+      M5.Lcd.println("SET QUICK DISK");
+      openFlag = true;
+    }
+#endif
     //該当なければCARTに設定
     if(openFlag == false){        
       vm->open_cart(0, cFileName);

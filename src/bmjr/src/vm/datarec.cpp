@@ -479,11 +479,8 @@ bool DATAREC::play_tape(const _TCHAR* file_path)
 		} else if(check_file_extension(play_fio->FilePath(), _T(".tap"))) {
 			// SHARP X1 series tape image
 			if((buffer_length = load_tap_image()) != 0) {
-				Serial.printf("tap image size:%d",buffer_length);
-				buffer = (uint8_t *)ps_malloc(buffer_length);
-				Serial.println(":OK!");
+				buffer = (uint8_t *)malloc(buffer_length);
 				load_tap_image();
-				Serial.println("load OK!");
 				play = is_wav = true;
 			}
 		} else if(check_file_extension(play_fio->FilePath(), _T(".mzt")) || check_file_extension(play_fio->FilePath(), _T(".mzf")) || check_file_extension(play_fio->FilePath(), _T(".m12"))) {
