@@ -85,7 +85,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	//kanji = new KANJI(this, emu);
 	keyboard = new KEYBOARD(this, emu);
 	memory = new MEMORY(this, emu);
-	//ramfile = new RAMFILE(this, emu);
+	ramfile = new RAMFILE(this, emu);
 	
 #if defined(_MZ800) || defined(_MZ1500)
 	and_snd = new AND(this, emu);
@@ -312,7 +312,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	// kanji
 	//io->set_iomap_range_rw(0xb8, 0xb9, kanji);
 	// ramfile
-	//io->set_iomap_range_rw(0xea, 0xeb, ramfile);
+	io->set_iomap_range_rw(0xea, 0xeb, ramfile);
 	// cmos
 //	io->set_iomap_range_rw(0xf8, 0xfa, cmos);
 	

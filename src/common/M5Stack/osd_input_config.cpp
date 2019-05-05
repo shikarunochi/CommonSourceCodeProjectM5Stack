@@ -328,5 +328,8 @@ M5StackKeyMap[M5KEY_RIGHT][1]=1;//+Shift
 M5StackKeyMap[M5KEY_BACKSPACE][0]=0x2E;
 #endif
 
+#if defined(_MZ1500)||defined(_MZ700)
+M5StackKeyMap[M5KEY_BACKSPACE][0]=0x2E;
+#endif
 
 }
