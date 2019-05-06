@@ -5,6 +5,9 @@
 	Author : Takeda.Toshiya
 	Date   : 2006.12.06 -
 
+	M5Stack version.
+	modified by shikarunochi 2019.04.18 - 
+
 	[ MB8877 / MB8876 / MB8866 / MB89311 ]
 */
 
@@ -246,10 +249,15 @@ void MB8877::write_io8(uint32_t addr, uint32_t data)
 				// write or multisector write
 				if(fdc[drvreg].index < disk[drvreg]->sector_size.sd) {
 					if(!disk[drvreg]->write_protected) {
-						if(disk[drvreg]->sector[fdc[drvreg].index] != datareg) {
-							disk[drvreg]->sector[fdc[drvreg].index] = datareg;
+						//if(disk[drvreg]->sector[fdc[drvreg].index] != datareg) {
+						//	disk[drvreg]->sector[fdc[drvreg].index] = datareg;
+						//	sector_changed = true;
+						//}
+						if(disk[drvreg]->readSector(fdc[drvreg].index) != datareg) {
+							disk[drvreg]->writeSector(fdc[drvreg].index, datareg);
 							sector_changed = true;
 						}
+
 						// dm, ddm
 						disk[drvreg]->set_deleted((cmdreg & 1) != 0);
 					} else {
@@ -338,7 +346,8 @@ write_id:
 							if(fdc[drvreg].sector_found) {
 								// sector data
 								if(fdc[drvreg].sector_index < fdc[drvreg].sector_length) {
-									disk[drvreg]->sector[fdc[drvreg].sector_index] = datareg;
+									//disk[drvreg]->sector[fdc[drvreg].sector_index] = datareg;
+									disk[drvreg]->writeSector(fdc[drvreg].sector_index, datareg);
 								}
 								fdc[drvreg].sector_index++;
 							} else if(datareg == 0xf8 || datareg == 0xfb) {
@@ -503,7 +512,8 @@ uint32_t MB8877::read_io8(uint32_t addr)
 			if(cmdtype == FDC_CMD_RD_SEC || cmdtype == FDC_CMD_RD_MSEC) {
 				// read or multisector read
 				if(fdc[drvreg].index < disk[drvreg]->sector_size.sd) {
-					datareg = disk[drvreg]->sector[fdc[drvreg].index];
+					//datareg = disk[drvreg]->sector[fdc[drvreg].index];
+					datareg = disk[drvreg]->readSector(fdc[drvreg].index);
 					//fdc[drvreg].index++;
 				}
 				if((fdc[drvreg].index + 1) >= disk[drvreg]->sector_size.sd) {
@@ -1075,6 +1085,7 @@ void MB8877::cmd_readdata(bool first_sector)
 	}
 	register_my_event(EVENT_SEARCH, time);
 	cancel_my_event(EVENT_LOST);
+	emu->set_disk_status(1);
 }
 
 void MB8877::cmd_writedata(bool first_sector)
@@ -1096,6 +1107,7 @@ void MB8877::cmd_writedata(bool first_sector)
 	}
 	register_my_event(EVENT_SEARCH, time);
 	cancel_my_event(EVENT_LOST);
+	emu->set_disk_status(2);
 }
 
 void MB8877::cmd_readaddr()

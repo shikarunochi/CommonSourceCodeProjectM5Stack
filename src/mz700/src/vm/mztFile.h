@@ -13,6 +13,7 @@
 #include "datarec.h"
 
 #define MZT_TAPEQUEUE_SIZE 1024 * 10
+#define MZT_TAPBUFFERSIZE 512
 
 typedef struct {
 	bool isHigh;
@@ -40,7 +41,7 @@ private:
 	uint16_t offs;
 	uint16_t execAddr;
 	uint8_t header[128];
-	uint8_t tapeBuffer[256];
+	uint8_t tapeBuffer[MZT_TAPBUFFERSIZE];
 
 	FILEIO *play_fio;
 
@@ -68,6 +69,7 @@ public:
 	uint8_t nextBuffer();
 	int getTapePosition();
 	int getTapeSize();
+	int getTapePercent();
 	void addHigh();
 	void addLow();
 };

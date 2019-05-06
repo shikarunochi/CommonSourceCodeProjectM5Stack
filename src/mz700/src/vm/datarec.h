@@ -21,6 +21,10 @@
 #include "mztFile.h"
 class MZTFILE;
 #endif
+#if defined(USE_TAP)
+#include "tapFile.h"
+class TAPFILE;
+#endif
 
 #define SIG_DATAREC_MIC		0
 #define SIG_DATAREC_REMOTE	1
@@ -32,7 +36,8 @@ class NOISE;
 
 enum {
 	TAPE_TYPE_EMPTY = 0,
-	TAPE_TYPE_MZT
+	TAPE_TYPE_MZT,
+	TAPE_TYPE_TAP
 };
 
 class DATAREC : public DEVICE
@@ -114,6 +119,9 @@ private:
 #if defined(USE_MZT)
 	MZTFILE *mztFile;
 #endif	
+#if defined(USE_TAP)
+	 TAPFILE *tapFile;
+#endif
 	
 public:
 	DATAREC(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
@@ -229,6 +237,7 @@ public:
 
 	int get_tape_position();
 	int get_tape_size();
+	int get_tape_percent();
 
 	const _TCHAR* get_message()
 	{

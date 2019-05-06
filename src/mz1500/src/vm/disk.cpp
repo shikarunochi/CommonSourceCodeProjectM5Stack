@@ -43,8 +43,6 @@ static const int secsize[8] = {
 	128, 256, 512, 1024, 2048, 4096, 8192, 16384
 };
 
-static uint8_t *tmp_buffer;//[DISK_BUFFER_SIZE];
-
 // physical format table for solid image
 typedef struct {
 	int type;
@@ -108,6 +106,7 @@ static const fd_format_t fd_formats[] = {
 
 void DISK::open(const _TCHAR* file_path, int bank)
 {
+	Serial.println("DISK::OPEN");
 	// check current disk image
 	if(inserted) {
 		if(_tcsicmp(orig_path, file_path) == 0 && file_bank == bank) {
@@ -118,15 +117,9 @@ void DISK::open(const _TCHAR* file_path, int bank)
 	if(bank < 0) {
 		return;
 	}
-	if(tmp_buffer){free(tmp_buffer);}
-	tmp_buffer = (uint8_t *)ps_malloc(DISK_BUFFER_SIZE);
-	if(buffer){free(buffer);}
-	buffer = (uint8_t*)ps_malloc(DISK_BUFFER_SIZE + TRACK_BUFFER_SIZE);
-	memset(buffer, 0, (DISK_BUFFER_SIZE + TRACK_BUFFER_SIZE));
-	if(fdi_header){free(fdi_header);}
-	fdi_header = (uint8_t*)ps_malloc(4096);
-
-
+	
+	//memset(buffer, 0, (DISK_BUFFER_SIZE + TRACK_BUFFER_SIZE));
+	
 	file_bank = 0;
 	write_protected = false;
 	media_type = MEDIA_TYPE_UNK;
@@ -136,15 +129,17 @@ void DISK::open(const _TCHAR* file_path, int bank)
 	track_mfm = drive_mfm;
 	
 	// open disk image
-	FILEIO *fio = new FILEIO();
-	if(fio->Fopen(file_path, FILEIO_READ_BINARY)) {
+	fio = new FILEIO();
+	//if(fio->Fopen(file_path, FILEIO_READ_BINARY)) {
+	if(fio->Fopen(file_path, FILEIO_READ_WRITE_BINARY)) {
 		my_tcscpy_s(orig_path, _MAX_PATH, file_path);
 		my_tcscpy_s(dest_path, _MAX_PATH, file_path);
 		
 		file_size.d = fio->FileLength();
 		fio->Fseek(0, FILEIO_SEEK_SET);
-		
+
 		if(check_file_extension(file_path, _T(".d88")) || check_file_extension(file_path, _T(".d77")) || check_file_extension(file_path, _T(".1dd"))) {
+
 			// d88 image
 			uint32_t offset = 0;
 			for(int i = 0; i < bank; i++) {
@@ -153,228 +148,17 @@ void DISK::open(const _TCHAR* file_path, int bank)
 			}
 			fio->Fseek(offset + 0x1c, FILEIO_SEEK_SET);
 			file_size.d = fio->FgetUint32_LE();
+			//Serial.printf("bufferSize=%d",file_size.d);Serial.println();
 			fio->Fseek(offset, FILEIO_SEEK_SET);
-			fio->Fread(buffer, file_size.d, 1);
+			//fio->Fread(buffer, file_size.d, 1);
 			file_bank = bank;
 			if(check_file_extension(file_path, _T(".1dd"))) {
 				is_1dd_image = true;
 				media_type = MEDIA_TYPE_2DD;
 			}
-			inserted = changed = true;
-//			trim_required = true;
-			
-			// fix sector number from big endian to little endian
-			for(int trkside = 0; trkside < 164; trkside++) {
-				pair32_t offset;
-				offset.read_4bytes_le_from(buffer + 0x20 + trkside * 4);
-				
-				if(!IS_VALID_TRACK(offset.d)) {
-					break;
-				}
-				uint8_t* t = buffer + offset.d;
-				pair32_t sector_num, data_size;
-				sector_num.read_2bytes_le_from(t + 4);
-				bool is_be = (sector_num.b.l == 0 && sector_num.b.h >= 4);
-				if(is_be) {
-					sector_num.read_2bytes_be_from(t + 4);
-					sector_num.write_2bytes_le_to(t + 4);
-				}
-				for(int i = 0; i < sector_num.sd; i++) {
-					if(is_be) {
-						sector_num.write_2bytes_le_to(t + 4);
-					}
-					data_size.read_2bytes_le_from(t + 14);
-					t += data_size.sd + 0x10;
-				}
-			}
-		} else if(check_file_extension(file_path, _T(".td0"))) {
-			// teledisk image
-			try {
-				if(teledisk_to_d88(fio)) {
-					inserted = changed = true;
-					my_stprintf_s(dest_path, _MAX_PATH, _T("%s.D88"), file_path);
-				}
-			} catch(...) {
-				// failed to convert the disk image
-			}
-		} else if(check_file_extension(file_path, _T(".imd"))) {
-			// imagedisk image
-			try {
-				if(imagedisk_to_d88(fio)) {
-					inserted = changed = true;
-					my_stprintf_s(dest_path, _MAX_PATH, _T("%s.D88"), file_path);
-				}
-			} catch(...) {
-				// failed to convert the disk image
-			}
-		} else if(check_file_extension(file_path, _T(".dsk"))) {
-			// cpdread image
-			try {
-				if(cpdread_to_d88(fio)) {
-					inserted = changed = true;
-					my_stprintf_s(dest_path, _MAX_PATH, _T("%s.D88"), file_path);
-				}
-			} catch(...) {
-				// failed to convert the disk image
-			}
-		//} else if(check_file_extension(file_path, _T(".nfd"))) {
-			// T98-NEXT nfd r0/r1 image for NEC PC-98x1 series
-			//try {
-				//if(nfdr0_to_d88(fio) || nfdr1_to_d88(fio)) {
-				//	inserted = changed = true;
-				//	my_stprintf_s(dest_path, _MAX_PATH, _T("%s.D88"), file_path);
-				//}
-			//} catch(...) {
-				// failed to convert the disk image
-			//}
-		} else if(check_file_extension(file_path, _T(".fdi"))) {
-			// Anex86 fdi image for NEC PC-98x1 series
-			if(file_size.d == 4096 + 77 * 2 * 8 * 1024) {
-				try {
-					fio->Fread(fdi_header, 4096, 1);
-					if(solid_to_d88(fio, MEDIA_TYPE_2HD, 77, 2, 8, 1024, true)) {
-						inserted = changed = is_solid_image = is_fdi_image = true;
-					}
-				} catch(...) {
-					// failed to convert the disk image
-				}
-			} else if(file_size.d == 4096 + 80 * 2 * 15 * 512) {
-				try {
-					fio->Fread(fdi_header, 4096, 1);
-					if(solid_to_d88(fio, MEDIA_TYPE_2HD, 80, 2, 15, 512, true)) {
-						inserted = changed = is_solid_image = is_fdi_image = true;
-					}
-				} catch(...) {
-					// failed to convert the disk image
-				}
-			} else if(file_size.d == 4096 + 80 * 2 * 18 * 512) {
-				try {
-					fio->Fread(fdi_header, 4096, 1);
-					if(solid_to_d88(fio, MEDIA_TYPE_144, 80, 2, 18, 512, true)) {
-						inserted = changed = is_solid_image = is_fdi_image = true;
-					}
-				} catch(...) {
-					// failed to convert the disk image
-				}
-			} else if(file_size.d == 4096 + 77 * 2 * 26 * 256) {
-				try {
-					fio->Fread(fdi_header, 4096, 1);
-					if(solid_to_d88(fio, MEDIA_TYPE_2HD, 77, 2, 26, 256, true)) {
-						inserted = changed = is_solid_image = is_fdi_image = true;
-					}
-				} catch(...) {
-					// failed to convert the disk image
-				}
-			} else if(file_size.d == 4096 + 80 * 2 * 9 * 512) {
-				try {
-					fio->Fread(fdi_header, 4096, 1);
-					if(solid_to_d88(fio, MEDIA_TYPE_2DD, 80, 2, 9, 512, true)) {
-						inserted = changed = is_solid_image = is_fdi_image = true;
-					}
-				} catch(...) {
-					// failed to convert the disk image
-				}
-			} else if(file_size.d == 4096 + 80 * 2 * 8 * 512) {
-				try {
-					fio->Fread(fdi_header, 4096, 1);
-					if(solid_to_d88(fio, MEDIA_TYPE_2DD, 80, 2, 8, 512, true)) {
-						inserted = changed = is_solid_image = is_fdi_image = true;
-					}
-				} catch(...) {
-					// failed to convert the disk image
-				}
-			}
-		} else if(check_file_extension(file_path, _T(".hdm")) && file_size.d == 77 * 2 * 8 * 1024) {
-			// BKDSK hdm image for NEC PC-98x1 series
-			try {
-				if(solid_to_d88(fio, MEDIA_TYPE_2HD, 77, 2, 8, 1024, true)) {
-					inserted = changed = is_solid_image = true;
-				}
-			} catch(...) {
-				// failed to convert the disk image
-			}
-		} else if(check_file_extension(file_path, _T(".hd5")) && file_size.d == 80 * 2 * 15 * 512) {
-			// BKDSK hd5 image for NEC PC-98x1 series
-			try {
-				if(solid_to_d88(fio, MEDIA_TYPE_2HD, 80, 2, 15, 512, true)) {
-					inserted = changed = is_solid_image = true;
-				}
-			} catch(...) {
-				// failed to convert the disk image
-			}
-		} else if(check_file_extension(file_path, _T(".hd4")) && file_size.d == 80 * 2 * 18 * 512) {
-			// BKDSK hd4 image for NEC PC-98x1 series
-			try {
-				if(solid_to_d88(fio, MEDIA_TYPE_144, 80, 2, 18, 512, true)) {
-					inserted = changed = is_solid_image = true;
-				}
-			} catch(...) {
-				// failed to convert the disk image
-			}
-		} else if(check_file_extension(file_path, _T(".hdb")) && file_size.d == 77 * 2 * 26 * 256) {
-			// BKDSK hdb image for NEC PC-98x1 series
-			try {
-				if(solid_to_d88(fio, MEDIA_TYPE_2HD, 77, 2, 26, 256, true)) {
-					inserted = changed = is_solid_image = true;
-				}
-			} catch(...) {
-				// failed to convert the disk image
-			}
-		} else if(check_file_extension(file_path, _T(".dd9")) && file_size.d == 80 * 2 * 9 * 512) {
-			// BKDSK dd9 image for NEC PC-98x1 series
-			try {
-				if(solid_to_d88(fio, MEDIA_TYPE_2DD, 80, 2, 9, 512, true)) {
-					inserted = changed = is_solid_image = true;
-				}
-			} catch(...) {
-				// failed to convert the disk image
-			}
-		} else if(check_file_extension(file_path, _T(".dd6")) && file_size.d == 80 * 2 * 8 * 512) {
-			// BKDSK dd6 image for NEC PC-98x1 series
-			try {
-				if(solid_to_d88(fio, MEDIA_TYPE_2DD, 80, 2, 8, 512, true)) {
-					inserted = changed = is_solid_image = true;
-				}
-			} catch(...) {
-				// failed to convert the disk image
-			}
-		} else if(check_file_extension(file_path, _T(".xdf")) && file_size.d == 77 * 2 * 8 * 1024) {
-			// EX68 xdf image for SHARP X680x0 series
-			try {
-				if(solid_to_d88(fio, MEDIA_TYPE_2HD, 77, 2, 8, 1024, true)) {
-					inserted = changed = is_solid_image = true;
-				}
-			} catch(...) {
-				// failed to convert the disk image
-			}
-		} else if(check_file_extension(file_path, _T(".2d"))  && file_size.d == 40 * 2 * 16 * 256) {
-			// 2d image for SHARP X1 series
-			try {
-				if(solid_to_d88(fio, MEDIA_TYPE_2D, 40, 2, 16, 256, true)) {
-					inserted = changed = is_solid_image = true;
-				}
-			} catch(...) {
-				// failed to convert the disk image
-			}
-		} else if(check_file_extension(file_path, _T(".sf7")) && file_size.d == 40 * 1 * 16 * 256) {
-			// sf7 image for SEGA SC-3000 + SF-7000
-			try {
-				if(solid_to_d88(fio, MEDIA_TYPE_2D, 40, 1, 16, 256, true)) {
-					inserted = changed = is_solid_image = true;
-				}
-			} catch(...) {
-				// failed to convert the disk image
-			}
-		} else if(check_file_extension(file_path, _T(".img"))  && file_size.d == 70 * 1 * 16 * 256) {
-			// img image for SONY SMC-70/777 series
-			try {
-				if(solid_to_d88(fio, MEDIA_TYPE_2DD, 70, 1, 16, 256, true)) {
-					inserted = changed = is_solid_image = true;
-				}
-			} catch(...) {
-				// failed to convert the disk image
-			}
+			inserted = 	changed = true;
 		}
+	/*
 		if(!inserted) {
 			// check solid image file format
 			for(int i = 0;; i++) {
@@ -420,27 +204,31 @@ void DISK::open(const _TCHAR* file_path, int bank)
 				}
 			}
 		}
-		if(fio->IsOpened()) {
-			fio->Fclose();
-		}
+	*/
+		//if(fio->IsOpened()) {
+		//	fio->Fclose();
+		//}
 	}
-	delete fio;
+	//delete fio;
 	
 	// check loaded image
+	//fio->Fread(read_buffer,0x2b0,1);//Header
+	fio->Fread(read_buffer,1024,1);//Header
 	if(inserted) {
 		// check media type
 		if(media_type == MEDIA_TYPE_UNK) {
-			if((media_type = buffer[0x1b]) == MEDIA_TYPE_2HD) {
+			//Serial.printf("MediaType:%X",read_buffer[0x1b]);Serial.println();
+			if((media_type = read_buffer[0x1b]) == MEDIA_TYPE_2HD) {
 				// check 1.2MB or 1.44MB
 				for(int trkside = 0; trkside < 164; trkside++) {
 					pair32_t offset;
-					offset.read_4bytes_le_from(buffer + 0x20 + trkside * 4);
+					offset.read_4bytes_le_from(read_buffer + 0x20 + trkside * 4);
 					
-					if(!IS_VALID_TRACK(offset.d)) {
+					if(!((offset.d) >= 0x20 && (offset.d) < sizeof(read_buffer))) {
 						continue;
 					}
 					// track found
-					uint8_t *t = buffer + offset.d;
+					uint8_t *t = read_buffer + offset.d;
 					pair32_t sector_num, data_size;
 					sector_num.read_2bytes_le_from(t + 4);
 					data_size.read_2bytes_le_from(t + 14);
@@ -452,17 +240,19 @@ void DISK::open(const _TCHAR* file_path, int bank)
 				}
 			}
 		}
-		
+		//Serial.printf("Final MediaType:%X",media_type);Serial.println();		
 		// check two side
 		int valid_side = 0;
 		
+		//fio->Fread(read_buffer,0x2b0,1);//Header 改めて読みなおし
+
 		for(int trk = 0; trk < 82; trk++) {
 			for(int side = 0; side < 2; side++) {
 				int trkside = trk * 2 + side;
 				pair32_t offset;
-				offset.read_4bytes_le_from(buffer + 0x20 + trkside * 4);
+				offset.read_4bytes_le_from(read_buffer + 0x20 + trkside * 4);
 				
-				if(IS_VALID_TRACK(offset.d)) {
+				if(((offset.d) >= 0x20 && (offset.d) < sizeof(read_buffer))) {
 					valid_side |= (1 << side);
 				}
 			}
@@ -470,16 +260,17 @@ void DISK::open(const _TCHAR* file_path, int bank)
 		}
 		// FIXME: unformat disk is recognized as two side
 		two_side = (valid_side != 1);
-		
+		//Serial.printf("Two Side:%d",two_side);Serial.println();		
 		// fix write protect flag
-		if(buffer[0x1a] != 0) {
-			buffer[0x1a] = 0x10;
+		if(read_buffer[0x1a] != 0) {
+			//Serial.println("Write protected");
+			read_buffer[0x1a] = 0x10; //TODO:消えてしまうので意味のない処理
 			write_protected = true;
 		}
 		
 		// get crc32 for midification check
-		orig_file_size = file_size.d;
-		orig_crc32 = get_crc32(buffer, file_size.d);
+		//orig_file_size = file_size.d;
+		//orig_crc32 = get_crc32(read_buffer, file_size.d);
 		
 		// check special disk image
 #if defined(_FM7) || defined(_FM8) || defined(_FM77_VARIANTS) || defined(_FM77AV_VARIANTS)
@@ -683,11 +474,11 @@ void DISK::open(const _TCHAR* file_path, int bank)
 		if(media_type == MEDIA_TYPE_2D) {
 			// check first track
 			pair32_t offset;
-			offset.read_4bytes_le_from(buffer + 0x20);
-			if(IS_VALID_TRACK(offset.d)) {
+			offset.read_4bytes_le_from(read_buffer + 0x20);
+			if(((offset.d) >= 0x20 && (offset.d) < sizeof(read_buffer))) {
 				// check first sector
 				static const uint8_t batten[] = {0xca, 0xde, 0xaf, 0xc3, 0xdd, 0x20, 0xc0, 0xc7, 0xb7};
-				uint8_t *t = buffer + offset.d;
+				uint8_t *t = read_buffer + offset.d;
 #if defined(_X1TURBO) || defined(_X1TURBOZ)
 //				if(strncmp((char *)(t + 0x11), "turbo ALPHA", 11) == 0) {
 //					is_special_disk = SPECIAL_DISK_X1TURBO_ALPHA;
@@ -704,140 +495,7 @@ void DISK::open(const _TCHAR* file_path, int bank)
 
 void DISK::close()
 {
-	// write disk image
-	if(inserted) {
-		if(trim_required) {
-			trim_buffer();
-			trim_required = false;
-		}
-		buffer[0x1a] = write_protected ? 0x10 : 0; // mey be changed
-		
-		if(/*!write_protected &&*/ !(file_size.d == orig_file_size && get_crc32(buffer, file_size.d) == orig_crc32)) {
-			// write image
-			FILEIO* fio = new FILEIO();
-			int pre_size = 0, post_size = 0;
-			uint8_t *pre_buffer = NULL, *post_buffer = NULL;
-			
-			// is this d88 format ?
-			if(check_file_extension(dest_path, _T(".d88")) || check_file_extension(dest_path, _T(".d77")) || check_file_extension(dest_path, _T(".1dd"))) {
-				if(fio->Fopen(dest_path, FILEIO_READ_BINARY)) {
-					fio->Fseek(0, FILEIO_SEEK_END);
-					uint32_t total_size = fio->Ftell(), offset = 0;
-					for(int i = 0; i < file_bank; i++) {
-						fio->Fseek(offset + 0x1c, SEEK_SET);
-						offset += fio->FgetUint32_LE();
-					}
-					if((pre_size = offset) > 0) {
-						pre_buffer = (uint8_t *)malloc(pre_size);
-						fio->Fseek(0, FILEIO_SEEK_SET);
-						fio->Fread(pre_buffer, pre_size, 1);
-					}
-					fio->Fseek(offset + 0x1c, SEEK_SET);
-					offset += fio->FgetUint32_LE();
-					if((post_size = total_size - offset) > 0) {
-						post_buffer = (uint8_t *)malloc(post_size);
-						fio->Fseek(offset, FILEIO_SEEK_SET);
-						fio->Fread(post_buffer, post_size, 1);
-					}
-					fio->Fclose();
-				}
-			}
-			
-			// is this solid image and was physical formatted ?
-			if(is_solid_image) {
-				bool formatted = false;
-				int tracks = 0;
-				
-				for(int trkside = 0; trkside < 164; trkside++) {
-					pair32_t offset;
-					offset.read_4bytes_le_from(buffer + 0x20 + trkside * 4);
-					
-					if(!IS_VALID_TRACK(offset.d)) {
-						continue;
-					}
-					if(solid_nside == 1 && (trkside & 1) == 1) {
-						formatted = true;
-					}
-					tracks++;
-					
-					uint8_t* t = buffer + offset.d;
-					pair32_t sector_num, data_size;
-					sector_num.read_2bytes_le_from(t + 4);
-					
-					if(sector_num.sd != solid_nsec) {
-						formatted = true;
-					}
-					for(int i = 0; i < sector_num.sd; i++) {
-						data_size.read_2bytes_le_from(t + 14);
-						if(data_size.sd != solid_size) {
-							formatted = true;
-						}
-						if(t[6] != (solid_mfm ? 0 : 0x40)) {
-							formatted = true;
-						}
-						t += data_size.sd + 0x10;
-					}
-				}
-				if(tracks != (solid_ncyl * solid_nside)) {
-					formatted = true;
-				}
-				if(formatted) {
-					my_stprintf_s(dest_path, _MAX_PATH, _T("%s.D88"), orig_path);
-					is_solid_image = false;
-				}
-			}
-			
-			if((FILEIO::IsFileExisting(dest_path) && FILEIO::IsFileProtected(dest_path)) || !fio->Fopen(dest_path, FILEIO_WRITE_BINARY)) {
-				//shikarunochi
-				//fio->Fopen(local_path(create_string(_T("temporary_saved_floppy_disk_#%d.d88"), drive_num)), FILEIO_WRITE_BINARY);
-			}
-			if(fio->IsOpened()) {
-				if(pre_buffer) {
-					fio->Fwrite(pre_buffer, pre_size, 1);
-				}
-				if(is_solid_image) {
-					if(is_fdi_image) {
-						fio->Fwrite(fdi_header, 4096, 1);
-					}
-					for(int trkside = 0; trkside < 164; trkside++) {
-						pair32_t offset;
-						offset.read_4bytes_le_from(buffer + 0x20 + trkside * 4);
-						
-						if(!IS_VALID_TRACK(offset.d)) {
-							continue;
-						}
-						uint8_t* t = buffer + offset.d;
-						pair32_t sector_num, data_size;
-						sector_num.read_2bytes_le_from(t + 4);
-						
-						for(int i = 0; i < sector_num.sd; i++) {
-							data_size.read_2bytes_le_from(t + 14);
-							fio->Fwrite(t + 0x10, data_size.sd, 1);
-							t += data_size.sd + 0x10;
-						}
-					}
-				} else {
-					fio->Fwrite(buffer, file_size.d, 1);
-				}
-				if(post_buffer) {
-					fio->Fwrite(post_buffer, post_size, 1);
-				}
-				fio->Fclose();
-			}
-			if(pre_buffer) {
-				free(pre_buffer);
-			}
-			if(post_buffer) {
-				free(post_buffer);
-			}
-			delete fio;
-		}
-		ejected = true;
-	}
-	inserted = write_protected = false;
-	file_size.d = 0;
-	sector_size.sd = sector_num.sd = 0;
-	sector = NULL;
+	fio->Fclose();
 }
 
 #ifdef _ANY2D88
@@ -864,6 +522,7 @@ void DISK::save_as_d88(const _TCHAR* file_path)
 
 bool DISK::get_track(int trk, int side)
 {
+	//Serial.printf("GetTrack:%d %d",trk,side);Serial.println();
 	if(media_type == MEDIA_TYPE_2D && drive_type == DRIVE_TYPE_2DD) {
 		if(trk >= 0) {
 			if(trk & 1) {
@@ -879,50 +538,71 @@ bool DISK::get_track(int trk, int side)
 
 bool DISK::get_track_tmp(int trk, int side)
 {
+	//Serial.printf("GetTrackTmp:%d %d",trk,side);Serial.println();
 	sector_size.sd = sector_num.sd = 0;
 	invalid_format = false;
 //	no_skew = true;
-	
 	// disk not inserted or invalid media type
 	if(!(inserted && check_media_type())) {
+		Serial.println("Not Inserted");
 		return false;
 	}
 	
 	// search track
 	int trkside = is_1dd_image ? trk : (trk * 2 + (side & 1));
 	if(!(0 <= trkside && trkside < 164)) {
+		Serial.println("trkSideError");
 		return false;
 	}
 	cur_track = trk;
 	cur_side = side;
 	
 	pair32_t offset;
-	offset.read_4bytes_le_from(buffer + 0x20 + trkside * 4);
+	fio->Fseek(0x20 + trkside * 4, FILEIO_SEEK_SET);
+	fio->Fread(read_buffer, 1, 4);
+	//offset.read_4bytes_le_from(buffer + 0x20 + trkside * 4);
+	offset.read_4bytes_le_from(read_buffer);
 	
-	if(!IS_VALID_TRACK(offset.d)) {
-		return false;
-	}
+	//if(!IS_VALID_TRACK(offset.d)) {
+	//	return false;
+	//}
 	
 	// track found
-	sector = buffer + offset.d;
-	sector_num.read_2bytes_le_from(sector + 4);
+	sectorOffset = offset.d;
+	fio->Fseek(sectorOffset + 4, FILEIO_SEEK_SET);
+	fio->Fread(read_buffer, 1, 2);
+	//sector_num.read_2bytes_le_from(sector + 4);
+	sector_num.read_2bytes_le_from(read_buffer);
+
+	//Serial.printf("SectorNum:%X",sector_num.d);Serial.println();
 	pair32_t data_size;
-	data_size.read_2bytes_le_from(sector + 14);
-	
+	fio->Fseek(sectorOffset + 14, FILEIO_SEEK_SET);
+	fio->Fread(read_buffer, 1, 2);
+	//data_size.read_2bytes_le_from(sector + 14);
+	data_size.read_2bytes_le_from(read_buffer);
+	//Serial.printf("DataSize:%d",data_size.sd);Serial.println();
 	// create each sector position in track
 	track_mfm = false;
 	if(sector_num.sd == 0) {
 		track_mfm = drive_mfm;
 	} else {
-		uint8_t* t = sector;
+		//uint8_t* t = sector;
+		int bufferOffset = sectorOffset;
 		for(int i = 0; i < sector_num.sd; i++) {
-			data_size.read_2bytes_le_from(t + 14);
+			fio->Fseek(bufferOffset + 14, FILEIO_SEEK_SET);
+			fio->Fread(read_buffer, 1, 2);
+			//data_size.read_2bytes_le_from(t + 14);
+			data_size.read_2bytes_le_from(read_buffer);
+			//Serial.printf("%d: %d:DataSize:%d",bufferOffset, i, data_size.sd);Serial.println();
 			// t[6]: 0x00 = double-density, 0x40 = single-density
-			if(t[6] == 0x00) {
+			fio->Fseek(bufferOffset + 6, FILEIO_SEEK_SET);
+			//if(t[6] == 0x00) {
+			if(fio->Fgetc() == 0x00) {
 				track_mfm = true;
 				break;
 			}
-			t += data_size.sd + 0x10;
+			//t += data_size.sd + 0x10;
+			bufferOffset += data_size.sd + 0x10;
 		}
 	}
 	int sync_size  = track_mfm ? 12 : 6;
@@ -931,7 +611,7 @@ bool DISK::get_track_tmp(int trk, int side)
 	int gap1_size = track_mfm ? 50 : 26;
 	int gap2_size = track_mfm ? 22 : 11;
 	int gap3_size = 0, gap4_size;
-	
+	//Serial.printf("DataSize:%d",data_size.sd);Serial.println();
 	if(media_type == MEDIA_TYPE_144 || media_type == MEDIA_TYPE_2HD) {
 		if(track_mfm) {
 			if(data_size.sd ==  256 && sector_num.sd == 26) gap3_size =  54;
@@ -954,11 +634,15 @@ bool DISK::get_track_tmp(int trk, int side)
 		}
 	}
 	
-	uint8_t* t = sector;
+	//uint8_t* t = sector;
+	int bufferOffset = sectorOffset;
 	int total = 0, valid_sector_num = 0;
 	
 	for(int i = 0; i < sector_num.sd; i++) {
-		data_size.read_2bytes_le_from(t + 14);
+		fio->Fseek(bufferOffset + 14, FILEIO_SEEK_SET);
+		fio->Fread(read_buffer, 1, 2);
+		data_size.read_2bytes_le_from(read_buffer);
+		//data_size.read_2bytes_le_from(t + 14);
 		sync_position[i] = total; // for invalid format case
 		total += sync_size + (am_size + 1) + (4 + 2) + gap2_size;
 		if(data_size.sd > 0) {
@@ -969,7 +653,8 @@ bool DISK::get_track_tmp(int trk, int side)
 //		if(t[2] != i + 1) {
 //			no_skew = false;
 //		}
-		t += data_size.sd + 0x10;
+		//t += data_size.sd + 0x10;
+		bufferOffset += data_size.sd + 0x10;
 	}
 	total += sync_size + (am_size + 1); // sync in preamble
 	
@@ -995,12 +680,15 @@ bool DISK::get_track_tmp(int trk, int side)
 			sync_position[i] /= total;
 		}
 	}
-	t = sector;
+	bufferOffset = sectorOffset;
 	total = preamble_size;
 	sync_position[array_length(sync_position) - 1] = gap0_size; // sync position in preamble
 	
 	for(int i = 0; i < sector_num.sd; i++) {
-		data_size.read_2bytes_le_from(t + 14);
+		fio->Fseek(bufferOffset + 14, FILEIO_SEEK_SET);
+		fio->Fread(read_buffer, 1, 2);
+		//data_size.read_2bytes_le_from(t + 14);
+		data_size.read_2bytes_le_from(read_buffer);
 		if(invalid_format) {
 			total = preamble_size + sync_position[i];
 		}
@@ -1018,8 +706,9 @@ bool DISK::get_track_tmp(int trk, int side)
 		} else {
 			data_position[i] = total; // FIXME
 		}
-		t += data_size.sd + 0x10;
+		bufferOffset += data_size.sd + 0x10;
 	}
+	//Serial.printf("GetTrack:OK!");Serial.println();
 	return true;
 }
 
@@ -1071,11 +760,15 @@ bool DISK::make_track_tmp(int trk, int side)
 	track[q++] = 0xfc;
 	
 	// sectors
-	uint8_t *t = sector;
+	//uint8_t *t = sector;
+	int bufferOffset = sectorOffset;
 	
 	for(int i = 0; i < sector_num.sd; i++) {
 		pair32_t data_size;
-		data_size.read_2bytes_le_from(t + 14);
+		fio->Fseek(bufferOffset + 14, FILEIO_SEEK_SET);
+		fio->Fread(read_buffer, 1, 2);
+		//data_size.read_2bytes_le_from(t + 14);
+		data_size.read_2bytes_le_from(read_buffer);
 		int p = sync_position[i];
 		
 		// sync
@@ -1091,14 +784,24 @@ bool DISK::make_track_tmp(int trk, int side)
 		if(p < track_size) track[p++] = 0xfe;
 		crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ 0xfe]);
 		// id
-		if(p < track_size) track[p++] = t[0];
-		if(p < track_size) track[p++] = t[1];
-		if(p < track_size) track[p++] = t[2];
-		if(p < track_size) track[p++] = t[3];
-		crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ t[0]]);
-		crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ t[1]]);
-		crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ t[2]]);
-		crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ t[3]]);
+		fio->Fseek(bufferOffset, FILEIO_SEEK_SET);
+		int tempValue[8];
+		tempValue[0] = fio->Fgetc();
+		tempValue[1] = fio->Fgetc();
+		tempValue[2] = fio->Fgetc();
+		tempValue[3] = fio->Fgetc();
+		tempValue[4] = fio->Fgetc();
+		tempValue[5] = fio->Fgetc();
+		tempValue[6] = fio->Fgetc();
+		tempValue[7] = fio->Fgetc();
+		if(p < track_size) track[p++] = tempValue[0];
+		if(p < track_size) track[p++] = tempValue[1];
+		if(p < track_size) track[p++] = tempValue[2];
+		if(p < track_size) track[p++] = tempValue[3];
+		crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ tempValue[0]]);
+		crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ tempValue[1]]);
+		crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ tempValue[2]]);
+		crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ tempValue[3]]);
 		if(p < track_size) track[p++] = (crc >> 8) & 0xff;
 		if(p < track_size) track[p++] = (crc >> 0) & 0xff;
 		// gap2
@@ -1117,24 +820,28 @@ bool DISK::make_track_tmp(int trk, int side)
 				if(p < track_size) track[p++] = 0xa1;
 				crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ 0xa1]);
 			}
-			uint8_t am2 = (t[7] != 0) ? 0xf8 : 0xfb;
+			uint8_t am2 = (tempValue[7] != 0) ? 0xf8 : 0xfb;
 			if(p < track_size) track[p++] = am2;
 			crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ am2]);
 			// data
 			for(int j = 0; j < data_size.sd; j++) {
-				if(p < track_size) track[p++] = t[0x10 + j];
-				crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ t[0x10 + j]]);
+				fio->Fseek(0x10 + j, FILEIO_SEEK_SET);
+				int checkValue = fio->Fgetc();
+				if(p < track_size) track[p++] = checkValue;//t[0x10 + j];
+				//crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ t[0x10 + j]]);
+				crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ checkValue]);
 			}
 			if(p < track_size) track[p++] = (crc >> 8) & 0xff;
 			if(p < track_size) track[p++] = (crc >> 0) & 0xff;
 		}
-		t += data_size.sd + 0x10;
+		bufferOffset += data_size.sd + 0x10;
 	}
 	return true;
 }
 
 bool DISK::get_sector(int trk, int side, int index)
 {
+	//Serial.printf("GetSector:%d %d %d",trk,side, index);Serial.println();
 	if(media_type == MEDIA_TYPE_2D && drive_type == DRIVE_TYPE_2DD) {
 		if(trk >= 0) {
 			if(trk & 1) {
@@ -1150,8 +857,10 @@ bool DISK::get_sector(int trk, int side, int index)
 
 bool DISK::get_sector_tmp(int trk, int side, int index)
 {
+	//Serial.printf("GetSectorTmp:%d %d %d",trk,side, index);Serial.println();
 	sector_size.sd = sector_num.sd = 0;
-	sector = NULL;
+	//sector = NULL;
+	sectorOffset = -1;
 	
 	// disk not inserted or invalid media type
 	if(!(inserted && check_media_type())) {
@@ -1168,15 +877,21 @@ bool DISK::get_sector_tmp(int trk, int side, int index)
 		return false;
 	}
 	pair32_t offset;
-	offset.read_4bytes_le_from(buffer + 0x20 + trkside * 4);
+	fio->Fseek( 0x20 + trkside * 4, FILEIO_SEEK_SET);
+	fio->Fread(read_buffer, 1,4);
+	offset.read_4bytes_le_from(read_buffer);
+	//offset.read_4bytes_le_from(buffer + 0x20 + trkside * 4);
 	
-	if(!IS_VALID_TRACK(offset.d)) {
-		return false;
-	}
+	//if(!IS_VALID_TRACK(offset.d)) {
+	//	return false;
+	//}
 	
 	// track found
-	uint8_t* t = buffer + offset.d;
-	sector_num.read_2bytes_le_from(t + 4);
+	int bufferOffset = offset.d;
+	fio->Fseek( bufferOffset + 4, FILEIO_SEEK_SET);
+	fio->Fread(read_buffer, 1,2);
+	sector_num.read_2bytes_le_from(read_buffer);
+	//sector_num.read_2bytes_le_from(t + 4);
 	
 	if(index >= sector_num.sd) {
 		return false;
@@ -1185,14 +900,18 @@ bool DISK::get_sector_tmp(int trk, int side, int index)
 	// skip sector
 	for(int i = 0; i < index; i++) {
 		pair32_t data_size;
-		data_size.read_2bytes_le_from(t + 14);
-		t += data_size.sd + 0x10;
+		fio->Fseek( bufferOffset + 14, FILEIO_SEEK_SET);
+		fio->Fread(read_buffer, 1,2);
+		data_size.read_2bytes_le_from(read_buffer);
+		//data_size.read_2bytes_le_from(t + 14);
+		bufferOffset += data_size.sd + 0x10;
 	}
-	set_sector_info(t);
+	set_sector_info(bufferOffset);
+	//Serial.printf("GetSectorOK:bufferOffset=%d",bufferOffset);Serial.println();
 	return true;
 }
 
-void DISK::set_sector_info(uint8_t *t)
+void DISK::set_sector_info(int bufferOffset)
 {
 	// header info
 	int am_size = track_mfm ? 3 : 0;
@@ -1201,31 +920,37 @@ void DISK::set_sector_info(uint8_t *t)
 		crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ 0xa1]);
 	}
 	crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ 0xfe]);
-	id[0] = t[0];
-	id[1] = t[1];
-	id[2] = t[2];
-	id[3] = t[3];
-	crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ t[0]]);
-	crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ t[1]]);
-	crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ t[2]]);
-	crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ t[3]]);
+	fio->Fseek(bufferOffset, FILEIO_SEEK_SET);
+	
+	id[0] = fio->Fgetc();//t[0];
+	id[1] = fio->Fgetc();//t[1];
+	id[2] = fio->Fgetc();//t[2];
+	id[3] = fio->Fgetc();//t[3];
+	crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ id[0]]);
+	crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ id[1]]);
+	crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ id[2]]);
+	crc = (uint16_t)((crc << 8) ^ crc_table[(uint8_t)(crc >> 8) ^ id[3]]);
 	id[4] = (crc >> 8) & 0xff;
 	id[5] = (crc >> 0) & 0xff;
 	// http://www.gnu-darwin.or.jp/www001/src/ports/emulators/quasi88/work/quasi88-0.6.3/document/FORMAT.TXT
 	// t[6]: 0x00 = double-density, 0x40 = single-density
 	// t[7]: 0x00 = normal, 0x10 = deleted mark
 	// t[8]: 0x00 = valid, 0x10 = valid (deleted data), 0xa0 = id crc error, 0xb0 = data crc error, 0xe0 = address mark missing, 0xf0 = data mark missing
-	density = t[6];
-	deleted = (t[7] != 0);
+	fio->Fseek(bufferOffset + 6, FILEIO_SEEK_SET);
+	density = fio->Fgetc();//t[6];
+	deleted = (fio->Fgetc()!=0);//(t[7] != 0);
 //	if(ignore_crc()) {
 //		addr_crc_error = false;
 //		data_crc_error = false;
 //	} else {
-		addr_crc_error = ((t[8] & 0xf0) == 0xa0);
-		data_crc_error = ((t[8] & 0xf0) == 0xb0);
+	uint8_t tmpValue = fio->Fgetc();
+		addr_crc_error = ((tmpValue & 0xf0) == 0xa0);
+		data_crc_error = ((tmpValue & 0xf0) == 0xb0);
 //	}
-	sector = t + 0x10;
-	sector_size.read_2bytes_le_from(t + 14);
+	sectorOffset = bufferOffset + 0x10;
+	fio->Fseek(bufferOffset + 14, FILEIO_SEEK_SET);
+	fio->Fread(read_buffer, 1,2);
+	sector_size.read_2bytes_le_from(read_buffer);
 }
 
 bool DISK::get_sector_info(int trk, int side, int index, uint8_t *c, uint8_t *h, uint8_t *r, uint8_t *n, int *length)
@@ -1255,16 +980,22 @@ bool DISK::get_sector_info_tmp(int trk, int side, int index, uint8_t *c, uint8_t
 		return false;
 	}
 	pair32_t offset;
-	offset.read_4bytes_le_from(buffer + 0x20 + trkside * 4);
+	fio->Fseek(0x20 + trkside * 4, FILEIO_SEEK_SET);
+	fio->Fread(read_buffer, 1,4);
+	offset.read_4bytes_le_from(read_buffer);
+	//offset.read_4bytes_le_from(buffer + 0x20 + trkside * 4);
 	
-	if(!IS_VALID_TRACK(offset.d)) {
-		return false;
-	}
+	//if(!IS_VALID_TRACK(offset.d)) {
+	//	return false;
+	//}
 	
 	// track found
-	uint8_t* t = buffer + offset.d;
+	int bufferOffset = offset.d;
 	pair32_t num, data_size;
-	num.read_2bytes_le_from(t + 4);
+	fio->Fseek(bufferOffset + 4, FILEIO_SEEK_SET);
+	fio->Fread(read_buffer, 1,2);
+	//num.read_2bytes_le_from(t + 4);
+	num.read_2bytes_le_from(read_buffer);
 	
 	if(index >= num.sd) {
 		return false;
@@ -1272,52 +1003,89 @@ bool DISK::get_sector_info_tmp(int trk, int side, int index, uint8_t *c, uint8_t
 	
 	// skip sector
 	for(int i = 0; i < index; i++) {
-		data_size.read_2bytes_le_from(t + 14);
-		t += data_size.sd + 0x10;
+		fio->Fseek(bufferOffset + 14, FILEIO_SEEK_SET);
+		fio->Fread(read_buffer, 1,2);
+		data_size.read_2bytes_le_from(read_buffer);
+		//data_size.read_2bytes_le_from(t + 14);
+		bufferOffset += data_size.sd + 0x10;
 	}
-	data_size.read_2bytes_le_from(t + 14);
-	*c = t[0];
-	*h = t[1];
-	*r = t[2];
-	*n = t[3];
+	fio->Fseek(bufferOffset + 14, FILEIO_SEEK_SET);
+	fio->Fread(read_buffer, 1,2);
+	data_size.read_2bytes_le_from(read_buffer);
+	//data_size.read_2bytes_le_from(t + 14);
+	fio->Fseek(bufferOffset, FILEIO_SEEK_SET);
+	*c = fio->Fgetc();//t[0];
+	*h = fio->Fgetc();//t[1];
+	*r = fio->Fgetc();//t[2];
+	*n = fio->Fgetc();//t[3];
 	*length = data_size.sd;
 	return true;
 }
 
 void DISK::set_deleted(bool value)
 {
-	if(sector != NULL) {
-		uint8_t *t = sector - 0x10;
-		t[7] = value ? 0x10 : 0;
-		if((t[8] & 0xf0) == 0x00 || (t[8] & 0xf0) == 0x10) {
-			t[8] = (t[8] & 0x0f) | t[7];
+
+	if(sectorOffset != -1) {
+		//uint8_t *t = sector - 0x10;
+		int offset = sectorOffset - 0x10;
+		fio->Fseek(offset + 7, FILEIO_SEEK_SET);
+		fio->Fputc(value ? 0x10 : 0);
+		//t[7] = value ? 0x10 : 0;
+		uint8_t t_8Value = fio->Fgetc();
+		//if((t[8] & 0xf0) == 0x00 || (t[8] & 0xf0) == 0x10) {
+		//	t[8] = (t[8] & 0x0f) | t[7];
+		//}
+		if((t_8Value & 0xf0) == 0x00 || (t_8Value & 0xf0) == 0x10) {
+			fio->Fseek(offset + 8, FILEIO_SEEK_SET);
+			fio->Fputc(t_8Value & 0x0f) | (value ? 0x10 : 0);
 		}
+
 	}
 	deleted = value;
 }
 
 void DISK::set_data_crc_error(bool value)
 {
-	if(sector != NULL) {
-		uint8_t *t = sector - 0x10;
-		t[8] = (t[8] & 0x0f) | (value ? 0xb0 : t[7]);
+	if(sectorOffset != -1) {
+		//uint8_t *t = sector - 0x10;
+		int offset = sectorOffset - 0x10;
+		fio->Fseek(offset + 7, FILEIO_SEEK_SET);
+		uint8_t t_7Value = fio->Fgetc();
+		uint8_t t_8Value = fio->Fgetc();
+		fio->Fseek(offset + 8, FILEIO_SEEK_SET);
+		//t[8] = (t[8] & 0x0f) | (value ? 0xb0 : t[7]);
+		fio->Fputc(t_8Value & 0x0f) | (value ? 0xb0 : t_7Value);
 	}
 	data_crc_error = value;
 }
 
 void DISK::set_data_mark_missing()
 {
-	if(sector != NULL) {
-		uint8_t *t = sector - 0x10;
-		t[8] = (t[8] & 0x0f) | 0xf0;
-		t[14] = t[15] = 0;
+	if(sectorOffset != -1) {
+//		uint8_t *t = sector - 0x10;
+		int offset = sectorOffset - 0x10;
+		fio->Fseek(offset + 8, FILEIO_SEEK_SET);
+		uint8_t t_8Value = fio->Fgetc();
+		fio->Fseek(offset + 8, FILEIO_SEEK_SET);
+		//t[8] = (t[8] & 0x0f) | 0xf0;
+		fio->Fputc((t_8Value & 0x0f) | 0xf0);
+		fio->Fseek(offset + 14, FILEIO_SEEK_SET);
+		//t[14] = t[15] = 0;
+		fio->Fputc(0);
+		fio->Fputc(0);
 	}
 //	addr_crc_error = false;
 	data_crc_error = false;
+	
 }
 
 bool DISK::format_track(int trk, int side)
 {
+	//M5 Stack not support
+	Serial.println("format_track:M5Stack version.NOT SUPPORT");
+	return false;
+
+	Serial.printf("FORMAT_TRACK %d:%d", trk, side);Serial.println();
 	if(media_type == MEDIA_TYPE_2D && drive_type == DRIVE_TYPE_2DD) {
 		if(trk >= 0) {
 			if(trk & 1) {
@@ -1333,6 +1101,12 @@ bool DISK::format_track(int trk, int side)
 
 bool DISK::format_track_tmp(int trk, int side)
 {
+	//M5 Stack not support
+	Serial.println("format_track_tmp:M5Stack version.NOT SUPPORT");
+	return false;
+
+	Serial.printf("FORMAT_TRACK_TMP %d:%d", trk, side);Serial.println();
+	/*
 	// disk not inserted or invalid media type
 	if(!(inserted && check_media_type())) {
 		return false;
@@ -1357,40 +1131,61 @@ bool DISK::format_track_tmp(int trk, int side)
 	trim_required = true;
 	sector_num.sd = 0;
 	track_mfm = drive_mfm;
-	
+	*/
 	return true;
 }
 
 void DISK::insert_sector(uint8_t c, uint8_t h, uint8_t r, uint8_t n, bool deleted, bool data_crc_error, uint8_t fill_data, int length)
 {
-	uint8_t* t = buffer + DISK_BUFFER_SIZE;
+	//M5 Stack not support
+	Serial.println("insert_sector:M5Stack version.NOT SUPPORT");
+	return;
+
+	Serial.printf("INSERT SECTOR %d:%d:%d:%d:%d length:", c,h,r,n,length);Serial.println();
+	//uint8_t* t = buffer + DISK_BUFFER_SIZE;
+	int offset = DISK_BUFFER_SIZE;
+	
+	fio->Fseek(offset,FILEIO_SEEK_SET);
 	
 	sector_num.sd++;
 	for(int i = 0; i < (sector_num.sd - 1); i++) {
-		t[4] = sector_num.b.l;
-		t[5] = sector_num.b.h;
+		fio->Fseek(offset + 4,FILEIO_SEEK_SET);
+		fio->Fputc(sector_num.b.l);
+		fio->Fputc(sector_num.b.h);
+		//t[4] = sector_num.b.l;
+		//t[5] = sector_num.b.h;
 		pair32_t data_size;
-		data_size.read_2bytes_le_from(t + 14);
-		t += data_size.sd + 0x10;
+		fio->Fseek(offset + 14,FILEIO_SEEK_SET);
+		fio->Fread(read_buffer, 1, 2);
+		//data_size.read_2bytes_le_from(t + 14);
+		data_size.read_2bytes_le_from(read_buffer);
+		offset += data_size.sd + 0x10;
 	}
-	t[0] = c;
-	t[1] = h;
-	t[2] = r;
-	t[3] = n;
-	t[4] = sector_num.b.l;
-	t[5] = sector_num.b.h;
-	t[6] = track_mfm ? 0 : 0x40;
-	t[7] = deleted ? 0x10 : 0;
-	t[8] = data_crc_error ? 0xb0 : t[7];
-	t[14] = (length >> 0) & 0xff;
-	t[15] = (length >> 8) & 0xff;
-	memset(t + 16, fill_data, length);
+	fio->Fseek(offset,FILEIO_SEEK_SET);
 	
-	set_sector_info(t);
+	fio->Fputc(c);//t[0] = c;
+	fio->Fputc(h);//t[1] = h;
+	fio->Fputc(r);//t[2] = r;
+	fio->Fputc(n);//t[3] = n;
+	fio->Fputc(sector_num.b.l);//t[4] = sector_num.b.l;
+	fio->Fputc(sector_num.b.h);//t[5] = sector_num.b.h;
+	fio->Fputc(track_mfm ? 0 : 0x40);//t[6] = track_mfm ? 0 : 0x40;
+	fio->Fputc(deleted ? 0x10 : 0);//t[7] = deleted ? 0x10 : 0;
+	fio->Fputc(data_crc_error ? 0xb0 : (deleted ? 0x10 : 0));//t[8] = data_crc_error ? 0xb0 : t[7];
+	fio->Fseek(offset + 14,FILEIO_SEEK_SET);
+	fio->Fputc((length >> 0) & 0xff);//t[14] = (length >> 0) & 0xff;
+	fio->Fputc((length >> 8) & 0xff);//t[15] = (length >> 8) & 0xff;
+	fio->Fseek(offset + 16,FILEIO_SEEK_SET);
+	for(int i=0;i < length;i++){//memset(t + 16, fill_data, length);
+		fio->Fputc(fill_data);
+	}
+	
+	set_sector_info(offset);
 }
 
 void DISK::sync_buffer()
 {
+	Serial.println("SYNC BUFFER");
 	if(trim_required) {
 		trim_buffer();
 		trim_required = false;
@@ -1399,6 +1194,12 @@ void DISK::sync_buffer()
 
 void DISK::trim_buffer()
 {
+   //M5 Stack not support
+	Serial.println("trim_buffer:M5Stack version.NOT SUPPORT");
+	return;
+
+	Serial.printf("TRIM_BUFFER");Serial.println();
+	/*
 	int max_tracks = 164;
 	int track_limit = 164;
 	uint32_t dest_offset = 0x2b0;
@@ -1465,6 +1266,7 @@ void DISK::trim_buffer()
 	
 	memset(buffer, 0, DISK_BUFFER_SIZE + TRACK_BUFFER_SIZE);
 	memcpy(buffer, tmp_buffer, min(sizeof(buffer), file_size.d));
+	*/
 }
 
 int DISK::get_max_tracks()
@@ -1517,30 +1319,58 @@ int DISK::get_bytes_per_usec(double usec)
 
 bool DISK::check_media_type()
 {
+	//Serial.printf("driveType:%d mediaType:%d",drive_type, media_type);Serial.println();
 	switch(drive_type) {
 	case DRIVE_TYPE_2D:
+		//Serial.println("2D");
 		return (media_type == MEDIA_TYPE_2D || media_type == MEDIA_TYPE_2DD);
 	case DRIVE_TYPE_2DD:
+		//Serial.println("2DD");
 		return (media_type == MEDIA_TYPE_2D || media_type == MEDIA_TYPE_2DD);
 	case DRIVE_TYPE_2HD:
+		//Serial.println("2HD");
 		return (media_type == MEDIA_TYPE_2HD);
 	case DRIVE_TYPE_144:
+		//Serial.println("144");
 		return (media_type == MEDIA_TYPE_144);
 	case DRIVE_TYPE_UNK:
+		//Serial.println("UNK");
 		return true; // always okay
 	}
+	//Serial.println("UNKKNOWN");
 	return false;
+}
+unsigned char DISK::readSector(int position){
+	fio->Fseek(sectorOffset + position,FILEIO_SEEK_SET);
+	return fio->Fgetc();
+}
+void DISK::writeSector(int position, unsigned char value){
+	//Serial.printf("WRITE SECTOR:SectorOffset:%d Position:%d value:%X",sectorOffset, position, value);Serial.println();
+	fio->Fseek(sectorOffset + position,FILEIO_SEEK_SET);
+	fio->Fputc(value);
+}
+
+void DISK::readSectorToBuffer(uint8_t* buffer, int position, int size){
+	fio->Fseek(sectorOffset + position,FILEIO_SEEK_SET);
+	fio->Fread(buffer, size, 1);
+	return;
+}
+void DISK::writeSectorFromBuffer(uint8_t* buffer, int position, int size){
+	//Serial.printf("WRITE SECTOR FROM BUFFER: %d %d",position, size);Serial.println();
+	fio->Fseek(sectorOffset + position,FILEIO_SEEK_SET);
+	fio->Fwrite(buffer, size, 1);
+	return;
 }
 
 // image decoder
 
-#define COPYBUFFER(src, size) { \
-	if(file_size.d + (size) > DISK_BUFFER_SIZE) { \
-		return false; \
-	} \
-	memcpy(buffer + file_size.d, (src), (size)); \
-	file_size.d += (size); \
-}
+//#define COPYBUFFER(src, size) { \
+//	if(file_size.d + (size) > DISK_BUFFER_SIZE) { \
+//		return false; \
+//	} \
+//	memcpy(buffer + file_size.d, (src), (size)); \
+//	file_size.d += (size); \
+//}
 
 typedef struct {
 	char title[17];
@@ -1886,6 +1716,7 @@ typedef struct {
 
 bool DISK::teledisk_to_d88(FILEIO *fio)
 {
+	/*
 	td_hdr_t hdr;
 	td_cmt_t cmt;
 	td_trk_t trk;
@@ -2040,6 +1871,7 @@ bool DISK::teledisk_to_d88(FILEIO *fio)
 	if(temporary) {
 		FILEIO::RemoveFile(_T("teledisk.$$$"));
 	}
+	*/
 	return true;
 }
 
@@ -2047,6 +1879,7 @@ bool DISK::teledisk_to_d88(FILEIO *fio)
 
 bool DISK::imagedisk_to_d88(FILEIO *fio)
 {
+	/*
 	int size = fio->FileLength();
 	fio->Fseek(0, FILEIO_SEEK_SET);
 	fio->Fread(tmp_buffer, size, 1);
@@ -2160,6 +1993,7 @@ bool DISK::imagedisk_to_d88(FILEIO *fio)
 	d88_hdr.size = trkptr;
 	memcpy(buffer, &d88_hdr, sizeof(d88_hdr_t));
 	free(dst);
+	*/
 	return true;
 }
 
@@ -2195,45 +2029,46 @@ struct sector_header {
 
 bool DISK::cpdread_to_d88(FILEIO *fio)
 {
+	/*
 	bool extendformat = false;
 	int image_size = fio->FileLength();
 	
 	fio->Fseek(0, FILEIO_SEEK_SET);
-	fio->Fread(tmp_buffer, image_size, 1);
+	fio->Fread(read_buffer, 512, 1);
 	
-	if(memcmp(tmp_buffer, EXT_FORMAT_HEADER, 16) == 0) {
+	if(memcmp(read_buffer, EXT_FORMAT_HEADER, 16) == 0) {
 		extendformat = true;
-	} else if(memcmp(tmp_buffer, DSK_FORMAT_HEADER, 8) == 0) {
+	} else if(memcmp(read_buffer, DSK_FORMAT_HEADER, 8) == 0) {
 		extendformat = false;
 	} else {
 		return false;
 	}
 	
-	int heads = tmp_buffer[0x31];
+	int heads = read_buffer[0x31];
 	int skip = 1;
 	if(heads == 1) {
 		skip = 2;
 	}
-	int tracks = tmp_buffer[0x30];
+	int tracks = read_buffer[0x30];
 	int track_offsets[84 * 2];
 	bool track_offsets_error = false;
 	if(!extendformat) {
 		int cnt = 0, tmp = 0x100;
 		for(int i = 0; i < tracks * heads; i++) {
-			track_offsets_error = (memcmp(tmp_buffer + tmp, "Track-Info", 10) != 0);
+			track_offsets_error = (memcmp(read_buffer + tmp, "Track-Info", 10) != 0);
 			if(track_offsets_error) {
 				break;
 			}
 			track_offsets[cnt] = tmp;
-			tmp += tmp_buffer[0x32] + tmp_buffer[0x33] * 256;
+			tmp += read_buffer[0x32] + read_buffer[0x33] * 256;
 			cnt += skip;
 		}
 	} else  {
 		int cnt = 0, tmp = 0x100;
 		for(int i = 0; i < tracks * heads; i++) {
-			int length = tmp_buffer[0x34 + i] << 8;
+			int length = read_buffer[0x34 + i] << 8;
 			if(length != 0) {
-				track_offsets_error = (memcmp(tmp_buffer + tmp, "Track-Info", 10) != 0);
+				track_offsets_error = (memcmp(read_buffer + tmp, "Track-Info", 10) != 0);
 				if(track_offsets_error) {
 					break;
 				}
@@ -2245,6 +2080,7 @@ bool DISK::cpdread_to_d88(FILEIO *fio)
 			cnt += skip;
 		}
 	}
+
 	if(track_offsets_error) {
 		// I found the dsk image that the track size in table is 1100h, but the actual track size is 900h,
 		// so I modified this code to search "Track-Info" at the top of track information block
@@ -2252,7 +2088,7 @@ bool DISK::cpdread_to_d88(FILEIO *fio)
 		for(int i = 0; i < tracks * heads; i++) {
 			bool found = false;
 			for(; tmp < image_size; tmp += 0x10) {
-				found = (memcmp(tmp_buffer + tmp, "Track-Info", 10) == 0);
+				found = (memcmp(read_buffer + tmp, "Track-Info", 10) == 0);
 				if(found) {
 					break;
 				}
@@ -2266,7 +2102,7 @@ bool DISK::cpdread_to_d88(FILEIO *fio)
 			cnt += skip;
 		}
 	}
-	
+
 	// create d88 header
 	d88_hdr_t d88_hdr;
 	d88_sct_t d88_sct;
@@ -2276,7 +2112,14 @@ bool DISK::cpdread_to_d88(FILEIO *fio)
 	d88_hdr.protect = 0; // non-protected
 	
 	file_size.d = 0;
-	COPYBUFFER(&d88_hdr, sizeof(d88_hdr_t));
+	if(file_size.d + (sizeof(d88_hdr_t)) > DISK_BUFFER_SIZE) {
+		 return false; 
+	}
+	//memcpy(buffer + file_size.d, (&d88_hdr), (sizeof(d88_hdr_t))); file_size.d += (sizeof(d88_hdr_t)); }
+	//COPYBUFFER(&d88_hdr, sizeof(d88_hdr_t));
+	fio->Fseek(file_size.d,FILEIO_SEEK_SET);
+	fio->Fread(&d88_hdr, (sizeof(d88_hdr_t)),1);
+	file_size.d += (sizeof(d88_hdr_t));
 	
 	// create tracks
 	int total = 0, trkptr = sizeof(d88_hdr_t);
@@ -2291,11 +2134,15 @@ bool DISK::cpdread_to_d88(FILEIO *fio)
 			}
 			
 			track_header tr;
-			memcpy(&tr, tmp_buffer + track_offsets[(track << 1) + side], sizeof(tr));
+			fio->Fseek(track_offsets[(track << 1) + side],FILEIO_SEEK_SET);
+			fio->Fread(&tr, sizeof(tr), 1);
+			//memcpy(&tr, tmp_buffer + track_offsets[(track << 1) + side], sizeof(tr));
 			int pos = track_offsets[(track << 1) + side] + 0x100;
 			for(int j = 0; j < tr.number_of_sector; j++) {
 				sector_header sector;
-				memcpy(&sector, tmp_buffer + track_offsets[(track << 1) + side] + sizeof(tr) + (sizeof(sector) * j), sizeof(sector));
+				fio->Fseek(track_offsets[(track << 1) + side] + sizeof(tr) + (sizeof(sector) * j),FILEIO_SEEK_SET);
+				fio->Fread(&sector, sizeof(sector), 1);
+				//memcpy(&sector, tmp_buffer + track_offsets[(track << 1) + side] + sizeof(tr) + (sizeof(sector) * j), sizeof(sector));
 				
 				// create d88 sector header
 				memset(&d88_sct, 0, sizeof(d88_sct_t));
@@ -2316,8 +2163,22 @@ bool DISK::cpdread_to_d88(FILEIO *fio)
 				
 				// copy to d88
 				if((track << 1) + side < 164) {
-					COPYBUFFER(&d88_sct, sizeof(d88_sct_t));
-					COPYBUFFER(tmp_buffer + pos, d88_sct.size);
+					if(file_size.d + (sizeof(d88_sct_t)) > DISK_BUFFER_SIZE) //COPYBUFFER(&d88_sct, sizeof(d88_sct_t));
+					 { return false; } 
+					fio->Fseek(file_size.d,FILEIO_SEEK_SET);
+					fio->Fread(&d88_sct, (sizeof(d88_sct_t)), 1);
+					//memcpy(buffer + file_size.d, (&d88_sct), (sizeof(d88_sct_t))); 
+					file_size.d += (sizeof(d88_sct_t)); 
+					
+					
+					if(file_size.d + (d88_sct.size) > DISK_BUFFER_SIZE) { //COPYBUFFER(tmp_buffer + pos, d88_sct.size);
+						return false; 
+					}
+					fio->Fseek(file_size.d,FILEIO_SEEK_SET);
+					fio->Fread(&d88_sct, (sizeof(d88_sct_t)), 1);
+					//memcpy(buffer + file_size.d, (tmp_buffer + pos), (d88_sct.size));//TODO
+					file_size.d += (d88_sct.size); 
+					
 					trkptr += sizeof(d88_sct_t) + d88_sct.size;
 				}
 				total += d88_sct.size;
@@ -2332,7 +2193,8 @@ bool DISK::cpdread_to_d88(FILEIO *fio)
 	}
 	d88_hdr.type = (total < (368640 + 655360) / 2) ? MEDIA_TYPE_2D : (total < (737280 + 1228800) / 2) ? MEDIA_TYPE_2DD : MEDIA_TYPE_2HD;
 	d88_hdr.size = trkptr;
-	memcpy(buffer, &d88_hdr, sizeof(d88_hdr_t));
+	//memcpy(buffer, &d88_hdr, sizeof(d88_hdr_t)); //TODO
+	*/
 	return true;
 }
 
@@ -2530,6 +2392,7 @@ bool DISK::nfdr0_to_d88(FILEIO *fio)
 
 bool DISK::solid_to_d88(FILEIO *fio, int type, int ncyl, int nside, int nsec, int size, bool mfm)
 {
+	/*
 	int n = 0, t = 0;
 	
 	media_type = type;
@@ -2598,16 +2461,18 @@ bool DISK::solid_to_d88(FILEIO *fio, int type, int ncyl, int nside, int nsec, in
 	d88_hdr.size = trkptr;
 	memcpy(buffer, &d88_hdr, sizeof(d88_hdr_t));
 	return true;
+*/
 }
 
 #define STATE_VERSION	13
 
 bool DISK::process_state(FILEIO* state_fio, bool loading)
 {
+	return true;
 	if(!state_fio->StateCheckUint32(STATE_VERSION)) {
 		return false;
 	}
-	state_fio->StateArray(buffer, sizeof(buffer), 1);
+	//state_fio->StateArray(buffer, sizeof(buffer), 1);
 	state_fio->StateArray(orig_path, sizeof(orig_path), 1);
 	state_fio->StateArray(dest_path, sizeof(dest_path), 1);
 	state_fio->StateValue(file_size.d);
@@ -2630,7 +2495,7 @@ bool DISK::process_state(FILEIO* state_fio, bool loading)
 	state_fio->StateValue(changed);
 	state_fio->StateValue(media_type);
 	state_fio->StateValue(is_special_disk);
-	state_fio->StateArray(track, sizeof(track), 1);
+	//state_fio->StateArray(track, sizeof(track), 1);
 	state_fio->StateValue(sector_num.sd);
 	state_fio->StateValue(track_mfm);
 	state_fio->StateValue(invalid_format);
@@ -2642,9 +2507,9 @@ bool DISK::process_state(FILEIO* state_fio, bool loading)
 //	state_fio->StateValue(gap3_size);
 	if(loading) {
 		int offset = state_fio->FgetInt32_LE();
-		sector = (offset != -1) ? buffer + offset : NULL;
+		sectorOffset = (offset != -1) ? 0 : -1;
 	} else {
-		state_fio->FputInt32_LE(sector ? (int)(sector - buffer) : -1);
+		state_fio->FputInt32_LE(sectorOffset==-1 ? (int)(sectorOffset) : -1);
 	}
 	state_fio->StateValue(sector_size.sd);
 	state_fio->StateArray(id, sizeof(id), 1);
@@ -2655,6 +2520,8 @@ bool DISK::process_state(FILEIO* state_fio, bool loading)
 	state_fio->StateValue(drive_type);
 	state_fio->StateValue(drive_rpm);
 	state_fio->StateValue(drive_mfm);
+
 	return true;
 }
+	
 

@@ -325,12 +325,15 @@ void FILEIO::Fclose()
 
 long FILEIO::FileLength()
 {
+#if defined(_M5Stack)
 	return file.size();
-	//long pos = Ftell();
-	//Fseek(0, FILEIO_SEEK_END);
-	//long len = Ftell();
-	//Fseek(pos, FILEIO_SEEK_SET);
-	//return len;
+#else
+	long pos = Ftell();
+	Fseek(0, FILEIO_SEEK_END);
+	long len = Ftell();
+	Fseek(pos, FILEIO_SEEK_SET);
+	return len;
+#endif
 }
 
 #define GET_VALUE(type) \

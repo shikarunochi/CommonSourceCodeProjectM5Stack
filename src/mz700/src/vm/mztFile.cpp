@@ -27,7 +27,6 @@ mztFormatData_t mztFormat[]={
 };
 
 void MZTFILE::initialize(FILEIO *parent_play_fio){
-
     play_fio = parent_play_fio;
 	int file_size =  play_fio->FileLength();
     Serial.printf("filesize:%d\n",file_size);
@@ -170,7 +169,7 @@ uint8_t MZTFILE::nextBuffer(){
             if(remainQueue < 100){
                 //データ X バイト
                 if(tapePosition < size){
-                    int readSize = 256;
+                    int readSize = MZT_TAPBUFFERSIZE;
                     readSize = play_fio->Fread(tapeBuffer,readSize,1);
                     for(int readPos = 0;readPos < readSize;readPos++){
                         uint8_t tapeByte = tapeBuffer[readPos];
@@ -268,7 +267,7 @@ void MZTFILE::addLow(){
 }
 
 
-int MZTFILE::getTapePosition(){ //Percent
+int MZTFILE::getTapePercent(){ //Percent
     if(size > 0){
         return (int)(((double)tapePosition / (double)size) * 100.0);
     }
@@ -276,4 +275,7 @@ int MZTFILE::getTapePosition(){ //Percent
 }
 int MZTFILE::getTapeSize(){
     return size;
+}
+int MZTFILE::getTapePosition(){
+    return tapePosition;
 }

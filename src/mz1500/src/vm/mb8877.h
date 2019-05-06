@@ -5,6 +5,9 @@
 	Author : Takeda.Toshiya
 	Date   : 2006.12.06 -
 
+	M5Stack version.
+	modified by shikarunochi 2019.04.18 - 
+
 	[ MB8877 / MB8876 / MB8866 / MB89311 ]
 */
 
@@ -36,7 +39,7 @@ private:
 	NOISE* d_noise_head_up;
 	
 	// drive info
-	struct {
+	struct fdc_struct{
 		int track;
 		int index;
 		bool access;
@@ -54,7 +57,8 @@ private:
 		int bytes_before_2nd_drq;
 		int next_am1_position;
 		uint32_t prev_clock;
-	} fdc[MAX_DRIVE];
+	} ;
+	fdc_struct fdc[MAX_DRIVE];
 	DISK* disk[MAX_DRIVE];
 	
 	// registor

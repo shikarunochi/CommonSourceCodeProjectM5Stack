@@ -166,8 +166,6 @@ public:
 	DEVICE* dummy;
 	DEVICE* first_device;
 	DEVICE* last_device;
-
-	virtual void memoryDump() { }
 };
 
 #endif /* _VM_TEMPLATE_H_ */
