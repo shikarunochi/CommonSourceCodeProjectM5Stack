@@ -172,7 +172,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 #elif defined(SUPPORT_MZ80FIO)
 	io->set_iomap_range_rw(0xf8, 0xfb, mz80fio);
 #endif
-	io->set_iomap_range_rw(0xfe, 0xff, printer);
+	//io->set_iomap_range_rw(0xfe, 0xff, printer);
 	
 	// initialize all devices
 	for(DEVICE* device = first_device; device; device = device->next_device) {
@@ -250,6 +250,11 @@ DEVICE *VM::get_cpu(int index)
 }
 #endif
 
+void VM::set_pc(uint16_t pc)
+{
+	Serial.println("Set_PC");
+	cpu->set_pc(pc);
+}
 // ----------------------------------------------------------------------------
 // draw screen
 // ----------------------------------------------------------------------------
@@ -332,7 +337,10 @@ bool VM::get_kana_locked()
 // ----------------------------------------------------------------------------
 // user interface
 // ----------------------------------------------------------------------------
-
+void VM::open_mzt(const _TCHAR* filename)
+{
+	memory->open_mzt(filename);
+}
 #if defined(SUPPORT_MZ80AIF) || defined(SUPPORT_MZ80FIO)
 void VM::open_floppy_disk(int drv, const _TCHAR* file_path, int bank)
 {

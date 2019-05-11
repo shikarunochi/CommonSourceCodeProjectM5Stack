@@ -333,11 +333,22 @@ bool OSD::openFile(String file){
     fileName.toUpperCase();
     bool openFlag = false;
 #ifdef USE_TAPE
-    if(fileName.endsWith(".P6T")
+#if defined(_MZ700)||defined(_MZ800) ||defined(_MZ1500) ||defined(_MZ1200)
+    if(btnBLongPress == true){
+      if(fileName.endsWith(".MZT")){
+        M5.Lcd.println("SET MZT TO MEMORY");
+        vm->open_mzt(cFileName);
+        openFlag = true;
+      }
+    }
+#endif
+
+    if((fileName.endsWith(".P6T")
       ||fileName.endsWith(".P6")
       ||fileName.endsWith(".CAS")
       ||fileName.endsWith(".MZT")
-      ||fileName.endsWith(".TAP")
+      ||fileName.endsWith(".TAP"))
+      &&openFlag == false
     ){
       vm->play_tape(0, cFileName);
       M5.Lcd.println("PLAY TAPE");

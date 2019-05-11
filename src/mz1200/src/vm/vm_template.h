@@ -102,7 +102,8 @@ public:
 	virtual void rec_tape(int drv, const _TCHAR *file_path) { }
 	virtual void load_binary(int drv, const _TCHAR *file_path) { }
 	virtual void save_binary(int drv, const _TCHAR *file_path) { }
-	
+	virtual void open_mzt(const _TCHAR *file_path) { }
+
 	virtual void close_floppy_disk(int drv) { }
 	virtual void close_quick_disk(int drv) { }
 	virtual void close_hard_disk(int drv) { }
@@ -157,6 +158,8 @@ public:
 	virtual int max_draw_ranges() { return 0; }
 	virtual DEVICE* get_device(int id) { return first_device; }
 	
+	virtual void set_pc(uint16_t pc){ }
+
 	// misc
 #if defined(__GIT_REPO_VERSION)
 	virtual const _TCHAR *get_vm_git_version(void) {
@@ -166,8 +169,6 @@ public:
 	DEVICE* dummy;
 	DEVICE* first_device;
 	DEVICE* last_device;
-
-	virtual void memoryDump() { }
 };
 
 #endif /* _VM_TEMPLATE_H_ */

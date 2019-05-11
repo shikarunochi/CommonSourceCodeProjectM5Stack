@@ -29,7 +29,7 @@
 #ifdef _MZ80A
 #define SUPPORT_MZ80AIF
 #else
-#define SUPPORT_MZ80FIO
+//#define SUPPORT_MZ80FIO
 #endif
 
 // device informations for virtual machine
@@ -51,7 +51,7 @@
 // device informations for win32
 #define USE_DIPSWITCH
 #define USE_TAPE		1
-#define USE_KEY_LOCKED
+//#define USE_KEY_LOCKED
 //#define USE_AUTO_KEY		5
 //#define USE_AUTO_KEY_RELEASE	6
 //#define USE_AUTO_KEY_NO_CAPS
@@ -77,6 +77,8 @@
 #if defined(_MZ1200)
 #define USE_MONITOR_TYPE	4
 #endif
+
+#define USE_MZT
 
 #include "../../common.h"
 #include "../../fileio.h"
@@ -197,6 +199,7 @@ public:
 	bool get_kana_locked();
 	
 	// user interface
+	void open_mzt(const _TCHAR *file_path);
 #if defined(SUPPORT_MZ80AIF) || defined(SUPPORT_MZ80FIO)
 	void open_floppy_disk(int drv, const _TCHAR* file_path, int bank);
 	void close_floppy_disk(int drv);
@@ -224,6 +227,8 @@ public:
 	void update_config();
 	bool process_state(FILEIO* state_fio, bool loading);
 	
+	void set_pc(uint16_t pc);
+
 	// ----------------------------------------
 	// for each device
 	// ----------------------------------------

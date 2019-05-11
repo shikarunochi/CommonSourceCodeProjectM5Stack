@@ -160,7 +160,8 @@ public:
 	}
 #endif
 	void draw_screen();
+	void open_mzt(const _TCHAR* filename);
 };
-
+	
 #endif
 

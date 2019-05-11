@@ -588,3 +588,64 @@ void MEMORY::memoryDump(){
 	}
 	Serial.println();
 }
+
+//From version 2010-09-29
+void MEMORY::open_mzt(const _TCHAR* filename)
+{
+	FILEIO* fio = new FILEIO();
+	if(fio->Fopen(filename, FILEIO_READ_BINARY)) {
+		fio->Fseek(0, FILEIO_SEEK_END);
+		int remain = fio->Ftell();
+		fio->Fseek(0, FILEIO_SEEK_SET);
+		
+		uint8_t header[128];
+		fio->Fread(header, 8, 1);
+		
+		if(header[0] == 'm' && header[1] == 'z' && header[2] == '2' && header[3] == '0') {
+			// this is mzf format
+			remain -= 8;
+			
+			while(remain >= 128 + 2 + 2) {
+				fio->Fread(header, sizeof(header), 1);
+				fio->Fseek(2, FILEIO_SEEK_CUR); // skip check sum
+				remain -= 128 + 2;
+				
+				int size = header[0x12] | (header[0x13] << 8);
+				int offs = header[0x14] | (header[0x15] << 8);
+				int addr = header[0x16] | (header[0x17] << 8);
+				
+				Serial.printf("[size:%X][offs:%X][addr:%X]\n",size,offs,addr);
+
+				if(remain >= size + 2) {
+					fio->Fread(ram + offs, size, 1);
+					fio->Fseek(2, FILEIO_SEEK_CUR); // skip check sum
+				}
+				remain -= size + 2;
+				vm->set_pc(addr);
+			}
+		}
+		else {
+			// this is mzt format
+			fio->Fseek(0, FILEIO_SEEK_SET);
+			
+			while(remain >= 128) {
+				fio->Fread(header, sizeof(header), 1);
+				remain -= 128;
+				
+				int size = header[0x12] | (header[0x13] << 8);
+				int offs = header[0x14] | (header[0x15] << 8);
+				int addr = header[0x16] | (header[0x17] << 8);
+				
+				Serial.printf("[size:%X][offs:%X][addr:%X]\n",size,offs,addr);
+
+				if(remain >= size) {
+					fio->Fread(ram + offs, size, 1);
+				}
+				remain -= size;
+				vm->set_pc(addr);
+			}
+		}
+	}
+	fio->Fclose();
+	delete fio;
+}

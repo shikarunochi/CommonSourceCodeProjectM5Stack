@@ -121,7 +121,7 @@ public:
 		d_pio = device;
 	}
 	void draw_screen();
-	
+	void open_mzt(const _TCHAR* filename);
 	void memoryDump();
 };
 

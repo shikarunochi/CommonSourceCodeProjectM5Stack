@@ -106,7 +106,6 @@ static const fd_format_t fd_formats[] = {
 
 void DISK::open(const _TCHAR* file_path, int bank)
 {
-	Serial.println("DISK::OPEN");
 	// check current disk image
 	if(inserted) {
 		if(_tcsicmp(orig_path, file_path) == 0 && file_bank == bank) {
@@ -139,7 +138,6 @@ void DISK::open(const _TCHAR* file_path, int bank)
 		fio->Fseek(0, FILEIO_SEEK_SET);
 
 		if(check_file_extension(file_path, _T(".d88")) || check_file_extension(file_path, _T(".d77")) || check_file_extension(file_path, _T(".1dd"))) {
-
 			// d88 image
 			uint32_t offset = 0;
 			for(int i = 0; i < bank; i++) {
@@ -278,10 +276,13 @@ void DISK::open(const _TCHAR* file_path, int bank)
 		if(media_type == MEDIA_TYPE_2D) {
 			// check first track
 			pair32_t offset, sector_num, data_size;
-			offset.read_4bytes_le_from(buffer + 0x20);
-			if(IS_VALID_TRACK(offset.d)) {
+			//offset.read_4bytes_le_from(buffer + 0x20);
+			offset.read_4bytes_le_from(read_buffer + 0x20);
+			//if(IS_VALID_TRACK(offset.d)) {
+			if(!((offset.d) >= 0x20 && (offset.d) < sizeof(read_buffer))) {
 				// check the sector (c,h,r,n) = (0,0,7,1) or (0,0,f7,2)
-				uint8_t* t = buffer + offset.d;
+				//uint8_t* t = buffer + offset.d;
+				uint8_t* t = read_buffer + offset.d;
 				sector_num.read_2bytes_le_from(t + 4);
 				for(int i = 0; i < sector_num.sd; i++) {
 					data_size.read_2bytes_le_from(t + 14);

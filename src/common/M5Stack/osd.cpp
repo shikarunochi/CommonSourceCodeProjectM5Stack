@@ -242,7 +242,11 @@ String OSD::selectFile()
             {
                 if (index == selectIndex)
                 {
-                    M5.Lcd.setTextColor(TFT_GREEN);
+                    if(btnBLongPress == TRUE){
+                        M5.Lcd.setTextColor(TFT_RED);
+                    }else{
+                        M5.Lcd.setTextColor(TFT_GREEN);
+                    }
                 }
                 else
                 {
@@ -323,7 +327,10 @@ String OSD::selectFile()
             }
         }
         if(M5.BtnB.pressedFor(1000)){
-            btnBLongPress = true; //長押しの場合、後で処理を変える。（Bドライブにセットする、など）
+            if( btnBLongPress == false){
+                btnBLongPress = true; //長押しの場合、後で処理を変える。（Bドライブにセットする、など）
+                needRedraw = true;
+            }
         }
         if (M5.BtnB.wasReleased())
         {

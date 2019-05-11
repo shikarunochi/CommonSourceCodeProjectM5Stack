@@ -300,6 +300,7 @@ public:
 #endif
 	
 	// user interface
+	void open_mzt(const _TCHAR *file_path);
 	void play_tape(int drv, const _TCHAR* file_path);
 	void rec_tape(int drv, const _TCHAR* file_path);
 	void close_tape(int drv);
@@ -330,7 +331,8 @@ public:
 	
 	void update_config();
 	bool process_state(FILEIO* state_fio, bool loading);
-	
+
+	void set_pc(uint16_t pc);
 	// ----------------------------------------
 	// for each device
 	// ----------------------------------------

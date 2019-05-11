@@ -457,6 +457,11 @@ DEVICE *VM::get_cpu(int index)
 }
 #endif
 
+void VM::set_pc(uint16_t pc)
+{
+	cpu->set_pc(pc);
+}
+
 // ----------------------------------------------------------------------------
 // draw screen
 // ----------------------------------------------------------------------------
@@ -530,6 +535,10 @@ void VM::set_sound_device_volume(int ch, int decibel_l, int decibel_r)
 // ----------------------------------------------------------------------------
 // user interface
 // ----------------------------------------------------------------------------
+void VM::open_mzt(const _TCHAR* filename)
+{
+	memory->open_mzt(filename);
+}
 
 void VM::play_tape(int drv, const _TCHAR* file_path)
 {

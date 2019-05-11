@@ -60,6 +60,8 @@
 	} \
 }
 
+#define MEM_BANK_MON	1
+
 #if defined(_MZ800)
 #define IPL_FILE_NAME	"MZ700IPL.ROM"
 #define EXT_FILE_NAME	"MZ800IPL.ROM"
@@ -1186,5 +1188,61 @@ bool MEMORY::process_state(FILEIO* state_fio, bool loading)
 		update_map_high();
 	}
 	return true;
+}
+
+//From version 2010-09-29
+void MEMORY::open_mzt(const _TCHAR* filename)
+{
+	FILEIO* fio = new FILEIO();
+	if(fio->Fopen(filename, FILEIO_READ_BINARY)) {
+		// init memory (???)
+		memcpy(ram, ipl, (0x1000));
+		
+		mem_bank &= ~MEM_BANK_MON;
+		update_map_low();
+		
+		// load mzt file
+//		fio->Fseek(0, FILEIO_SEEK_END);
+//		int remain = fio->Ftell();
+//		fio->Fseek(0, FILEIO_SEEK_SET);
+//		bool first_block = true;
+		
+//		while(remain >= 128) {
+			uint8_t header[128];
+			fio->Fread(header, sizeof(header), 1);
+//			remain -= 128;
+			
+			int size = header[0x12] | (header[0x13] << 8);
+			int offs = header[0x14] | (header[0x15] << 8);
+			int addr = header[0x16] | (header[0x17] << 8);
+			Serial.printf("Read MZT to RAM[size:%X][offs:%X][addr:%X]\n",size,offs,addr);
+//			if(first_block) {
+//				first_block = false;
+				vm->set_pc(addr);
+//			}
+//			if(remain >= size) {
+				fio->Fread(ram + offs, size, 1);
+//			}
+//			remain -= size;
+			
+			// patch
+			if(header[0x40] == 'P' && header[0x41] == 'A' && header[0x42] == 'T' && header[0x43] == ':') {
+				int patch_ofs = 0x44;
+				for(; patch_ofs < 0x80; ) {
+					uint16_t patch_addr = header[patch_ofs] | (header[patch_ofs + 1] << 8);
+					patch_ofs += 2;
+					if(patch_addr == 0xffff) {
+						break;
+					}
+					int patch_len = header[patch_ofs++];
+					for(int i = 0; i < patch_len; i++) {
+						ram[patch_addr + i] = header[patch_ofs++];
+					}
+				}
+			}
+//		}
+	}
+	fio->Fclose();
+	delete fio;
 }
 
