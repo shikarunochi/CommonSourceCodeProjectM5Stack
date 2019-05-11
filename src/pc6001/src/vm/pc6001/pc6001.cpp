@@ -98,7 +98,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	
 #if defined(_PC6601) || defined(_PC6601SR)
 	floppy = new FLOPPY(this, emu);
-	floppy->set_context_noise_seek(noise_seek);
+//	floppy->set_context_noise_seek(noise_seek);
 //	floppy->set_context_noise_head_down(noise_head_down);
 //	floppy->set_context_noise_head_up(noise_head_up);
 #endif
@@ -281,8 +281,10 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	// initialize all devices
 	for(DEVICE* device = first_device; device; device = device->next_device) {
 		Serial.print(device->get_device_name());
+		//M5.Lcd.print(device->get_device_name());
 		device->initialize();
 		Serial.println(":initialize OK");
+		//M5.Lcd.println(":initialize OK");
 	}
 	if(support_sub_cpu) {
 		// load rom images after cpustate is allocated
@@ -303,6 +305,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 		pc6031->get_disk_handler(0)->drive_num = drive_num++;
 		pc6031->get_disk_handler(1)->drive_num = drive_num++;
 	}
+	Serial.printf("DriveNum = %d", drive_num);Serial.println();
 }
 
 VM::~VM()
@@ -482,14 +485,18 @@ bool VM::is_cart_inserted(int drv)
 
 void VM::open_floppy_disk(int drv, const _TCHAR* file_path, int bank)
 {
+	Serial.println("OpenFloppyDisk");
+/*
 #if defined(_PC6601) || defined(_PC6601SR)
 	if(drv < 2) {
+		Serial.println("Floppy:OPEN DISK");
 		floppy->open_disk(drv, file_path, bank);
 		return;
 	} else {
 		drv -= 2;
 	}
 #endif
+*/
 	if(support_pc80s31k) {
 		fdc_pc80s31k->open_disk(drv, file_path, bank);
 	} else {

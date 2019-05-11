@@ -2,4 +2,4 @@ copy here from /common/
 ------------
 M5Stack/*.*
 *.cpp
-*,h
+*.h

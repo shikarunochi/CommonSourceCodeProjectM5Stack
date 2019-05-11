@@ -4,6 +4,9 @@
 	Author : Takeda.Toshiya
 	Date   : 2006.08.18 -
 
+	M5Stack version.
+	modified by shikarunochi 2019.04.23 - 	
+
 	[ device base class ]
 */
 
@@ -454,7 +457,9 @@ public:
 			int shift = item->shift;
 			uint32_t val = (shift < 0) ? (data >> (-shift)) : (data << shift);
 			uint32_t mask = (shift < 0) ? (item->mask >> (-shift)) : (item->mask << shift);
+			//Serial.printf("write signal:%s",item->device->get_device_name());
 			item->device->write_signal(item->id, val, mask);
+			//Serial.println(":End");
 		}
 	};
 	virtual void write_signal(int id, uint32_t data, uint32_t mask) {}

@@ -4,6 +4,9 @@
 	Author : K.Ohta
 	Date   : 2018.10.10-
 
+	M5Stack version.
+	modified by shikarunochi 2019.03.24 - 
+
 	[ virtual machine template ]
 */
 
@@ -99,7 +102,8 @@ public:
 	virtual void rec_tape(int drv, const _TCHAR *file_path) { }
 	virtual void load_binary(int drv, const _TCHAR *file_path) { }
 	virtual void save_binary(int drv, const _TCHAR *file_path) { }
-	
+	virtual void open_mzt(const _TCHAR *file_path) { }
+
 	virtual void close_floppy_disk(int drv) { }
 	virtual void close_quick_disk(int drv) { }
 	virtual void close_hard_disk(int drv) { }
@@ -154,6 +158,8 @@ public:
 	virtual int max_draw_ranges() { return 0; }
 	virtual DEVICE* get_device(int id) { return first_device; }
 	
+	virtual void set_pc(uint16_t pc){ }
+
 	// misc
 #if defined(__GIT_REPO_VERSION)
 	virtual const _TCHAR *get_vm_git_version(void) {

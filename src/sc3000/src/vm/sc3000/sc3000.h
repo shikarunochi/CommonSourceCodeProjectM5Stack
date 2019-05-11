@@ -17,7 +17,7 @@
 #define CONFIG_NAME		"sc3000"
 
 // device informations for virtual machine
-#define FRAMES_PER_SEC		60
+#define FRAMES_PER_SEC		(60 / 2)
 #define LINES_PER_FRAME		262
 #define CPU_CLOCKS		3579545
 #define SCREEN_WIDTH		256

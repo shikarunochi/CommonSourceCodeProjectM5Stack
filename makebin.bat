@@ -24,6 +24,10 @@ cd jr100
 copy .pioenvs\m5stack-fire\firmware.bin ..\..\bin\jr100.bin
 cd ..
 
+cd pc6001
+copy .pioenvs\m5stack-fire\firmware.bin ..\..\bin\pc6001.bin
+cd ..
+
 cd pc6001mk2
 copy .pioenvs\m5stack-fire\firmware.bin ..\..\bin\pc6001mk2.bin
 cd ..
@@ -42,6 +46,34 @@ cd ..
 
 cd pc8201
 copy .pioenvs\m5stack-fire\firmware.bin ..\..\bin\pc8201.bin
+cd ..
+
+cd bmjr
+copy .pioenvs\m5stack-fire\firmware.bin ..\..\bin\bmjr.bin
+cd ..
+
+cd fm7
+copy .pioenvs\m5stack-fire\firmware.bin ..\..\bin\fm7.bin
+cd ..
+
+cd mz1200
+copy .pioenvs\m5stack-fire\firmware.bin ..\..\bin\mz1200.bin
+cd ..
+
+cd mz1500
+copy .pioenvs\m5stack-fire\firmware.bin ..\..\bin\mz1500.bin
+cd ..
+
+cd mz700
+copy .pioenvs\m5stack-fire\firmware.bin ..\..\bin\mz700.bin
+cd ..
+
+cd rx78
+copy .pioenvs\m5stack-fire\firmware.bin ..\..\bin\rx78.bin
+cd ..
+
+cd x1
+copy .pioenvs\m5stack-fire\firmware.bin ..\..\bin\x1.bin
 cd ..
 
 cd ..

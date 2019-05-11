@@ -4,6 +4,9 @@
 	Author : Takeda.Toshiya
 	Date   : 2006.08.18 -
 
+	M5Stack version.
+	modified by shikarunochi 2019.03.24 - 
+
 	[ data recorder ]
 */
 
@@ -14,12 +17,28 @@
 #include "../emu.h"
 #include "device.h"
 
+#if defined(USE_MZT)
+#include "mztFile.h"
+class MZTFILE;
+#endif
+#if defined(USE_TAP)
+#include "tapFile.h"
+class TAPFILE;
+#endif
+
 #define SIG_DATAREC_MIC		0
 #define SIG_DATAREC_REMOTE	1
 #define SIG_DATAREC_TRIG	2
 
 class FILEIO;
 class NOISE;
+
+
+enum {
+	TAPE_TYPE_EMPTY = 0,
+	TAPE_TYPE_MZT,
+	TAPE_TYPE_TAP
+};
 
 class DATAREC : public DEVICE
 {
@@ -54,11 +73,7 @@ private:
 	int sample_rate;
 	double sample_usec;
 	int buffer_ptr, buffer_length;
-	//uint8_t *buffer;//, *buffer_bak;
-	uint8_t * casData;
-	int casDataLength;
-	int preCasPos;
-	int headerBufferLength;
+	uint8_t *buffer, *buffer_bak;
 #ifdef DATAREC_SOUND
 	int sound_buffer_length;
 	int16_t *sound_buffer, sound_sample;
@@ -98,8 +113,16 @@ private:
 	int load_m5_cas_image();
 	int load_msx_cas_image();
 
-	int getBuffer(int buffer_ptr);
-	int calcBufferLength();
+	int8_t nextBuffer();
+
+	int tapeType;
+#if defined(USE_MZT)
+	MZTFILE *mztFile;
+#endif	
+#if defined(USE_TAP)
+	 TAPFILE *tapFile;
+#endif
+	
 public:
 	DATAREC(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
@@ -211,19 +234,11 @@ public:
 	{
 		return (remote && rec);
 	}
-	int get_tape_position()
-	{
-		if(play && buffer_length > 0) {
-			if(buffer_ptr >= buffer_length) {
-				return 100;
-			} else if(buffer_ptr <= 0) {
-				return 0;
-			} else {
-				return (int)(((double)buffer_ptr / (double)buffer_length) * 100.0);
-			}
-		}
-		return 0;
-	}
+
+	int get_tape_position();
+	int get_tape_size();
+	int get_tape_percent();
+
 	const _TCHAR* get_message()
 	{
 		return message;

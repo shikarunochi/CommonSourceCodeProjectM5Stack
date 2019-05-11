@@ -5,7 +5,7 @@
 	Date   : 2010.08.03-
 
 	M5Stack version.
-	modified by shikarunochi 2019.03.23 -
+	modified by shikarunochi 2019.03.24 - 
 
 	[ mc6847 ]
 */
@@ -101,10 +101,6 @@ static const uint8_t intfont[64 * 12] = {
 
 void MC6847::initialize()
 {
-	sg4 = (uint8_t*)ps_malloc(16 * 12);
-	sg6 = (uint8_t*)ps_malloc(64 * 12);
-	screen = (uint8_t*)ps_malloc(192 * 256);
-
 	// semigraphics pattern
 	for(int i = 0; i < 16; i++) {
 		for(int j = 0; j < 6; j++) {
@@ -233,11 +229,10 @@ void MC6847::set_disp(bool val)
 
 void MC6847::load_font_image(const _TCHAR *file_path)
 {
-	extfont = (uint8_t*)ps_malloc(256 * 16);
 	// external font
 	FILEIO* fio = new FILEIO();
 	if(fio->Fopen(file_path, FILEIO_READ_BINARY)) {
-		fio->Fread(extfont, 256 * 16, 1);
+		fio->Fread(extfont, sizeof(extfont), 1);
 		fio->Fclose();
 	}
 	delete fio;
@@ -247,7 +242,7 @@ void MC6847::draw_screen()
 {
 	// render screen
 	if(disabled) {
-		memset(screen, 0, 192 * 256);
+		memset(screen, 0, 192*256);
 	} else if(ag) {
 		// graphics mode
 		switch(gm) {
@@ -285,7 +280,6 @@ void MC6847::draw_cg(int xofs, int yofs)
 			if(++ofs >= vram_size) {
 				ofs = 0;
 			}
-			//uint8_t* dest = &screen[y * 256 + x];
 			uint8_t* dest = screen + y * 256 + x;
 			
 			if(xofs == 4) {
@@ -329,7 +323,6 @@ void MC6847::draw_rg(int xofs, int yofs)
 			if(++ofs >= vram_size) {
 				ofs = 0;
 			}
-			//uint8_t* dest = &screen[y * 256 + x];
 			uint8_t* dest = screen + y * 256 + x;
 			
 			if(xofs == 2) {
@@ -363,9 +356,9 @@ void MC6847::draw_rg(int xofs, int yofs)
 			}
 		}
 		if(yofs >= 2) {
-			my_memcpy(screen + (y + 1)*256 , screen + y*256, 256);
+			my_memcpy(screen + (y + 1) * 256, screen + y * 256, 256);
 			if(yofs >= 3) {
-				my_memcpy(screen + (y + 2)*256, screen + y*256, 256);
+				my_memcpy(screen + (y + 2) * 256, screen + y * 256, 256);
 			}
 		}
 	}
@@ -451,7 +444,6 @@ void MC6847::draw_alpha()
 			}
 			for(int l = 0; l < 12; l++) {
 				uint8_t pat = pattern[l];
-				//uint8_t* dest = &screen[(y + l) * 256 + x];
 				uint8_t* dest = screen + (y + l) * 256 + x;
 				
 				dest[0] = (pat & 0x80) ? col_fore : col_back;

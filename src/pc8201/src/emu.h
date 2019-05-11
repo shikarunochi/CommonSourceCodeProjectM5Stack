@@ -525,6 +525,7 @@ public:
 #endif
     void set_screen_message(String message);
 	void set_disk_status(int drvNo, int status);
+	void set_disk_status(int status);
 };
 
 #endif

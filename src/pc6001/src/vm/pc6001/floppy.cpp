@@ -23,12 +23,13 @@ int FLOPPY::Seek88(int drvno, int trackno, int sectno)
 {
 	if(drvno < 2) {
 		if(cur_trk[drvno] != trackno) {
-			if(d_noise_seek != NULL) d_noise_seek->play();
+			//if(d_noise_seek != NULL) d_noise_seek->play();
 		}
 		cur_trk[drvno] = trackno;
 		cur_sct[drvno] = sectno;
 		cur_pos[drvno] = 0;
-		
+		Serial.printf("Seek88:drvNo:%d trackNo:%d sectNo:%d",drvno, trackno, sectno);Serial.println();
+		Serial.printf("trackNo>>1:%d trackNo&1:%d",trackno >> 1, trackno & 1);Serial.println();
 		if(disk[drvno]->get_track(trackno >> 1, trackno & 1)) {
 			for(int i = 0; i < disk[drvno]->sector_num.sd; i++) {
 				if(disk[drvno]->get_sector(trackno >> 1, 0/*trackno & 1*/, i)) {
@@ -44,7 +45,7 @@ int FLOPPY::Seek88(int drvno, int trackno, int sectno)
 
 unsigned char FLOPPY::Getc88(int drvno)
 {
-	if(drvno < 2 && disk[drvno]->sector != NULL) {
+	if(drvno < 2 && disk[drvno]->sectorOffset != -1) {
 		if(cur_pos[drvno] >= disk[drvno]->sector_size.sd) {
 			cur_sct[drvno]++;
 			if(!Seek88(drvno, cur_trk[drvno], cur_sct[drvno])) {
@@ -57,14 +58,15 @@ unsigned char FLOPPY::Getc88(int drvno)
 			}
 		}
 		access[drvno] = true;
-		return disk[drvno]->sector[cur_pos[drvno]++];
+		return disk[drvno]->readSector(cur_pos[drvno]++);
 	}
 	return 0xff;
 }
 
 int FLOPPY::Putc88(int drvno, unsigned char dat)
 {
-	if(drvno < 2 && disk[drvno]->sector != NULL) {
+	Serial.println("PutC88");
+	if(drvno < 2 && disk[drvno]->sectorOffset != -1) {
 		if(cur_pos[drvno] >= disk[drvno]->sector_size.sd) {
 			cur_sct[drvno]++;
 			if(!Seek88(drvno, cur_trk[drvno], cur_sct[drvno])) {
@@ -72,12 +74,13 @@ int FLOPPY::Putc88(int drvno, unsigned char dat)
 				cur_trk[drvno] += 2;
 				cur_sct[drvno] = 1;
 				if(!Seek88(drvno, cur_trk[drvno], cur_sct[drvno])) {
+					Serial.printf("PutC88 ERROR %d : %d ", cur_trk[drvno],cur_sct[drvno]);Serial.println();
 					return 0xff;
 				}
 			}
 		}
 		access[drvno] = true;
-		disk[drvno]->sector[cur_pos[drvno]++] = dat;
+		disk[drvno]->writeSector(cur_pos[drvno]++,dat);
 		return 1;
 	}
 	return 0;
@@ -178,6 +181,7 @@ unsigned char FLOPPY::InFDC()
 // read
 void FLOPPY::Read()
 {
+	Serial.println("FLOPPY:READ");
 	int Drv, C, H, R, N;
 	int i, j;
 	
@@ -210,6 +214,7 @@ void FLOPPY::Read()
 // Write
 void FLOPPY::Write(void)
 {
+	Serial.println("FLOOPY:WRITE");
 	int Drv, C, H, R, N;
 	int i, j;
 	
@@ -220,11 +225,14 @@ void FLOPPY::Write(void)
 	N   = CmdIn.Data[5] ? CmdIn.Data[5]*256 : 256;	// sector size
 	
 	if (disk[Drv]->inserted) {
+		Serial.println("FLOOPY:WRITE 1");
 		// seek
 		// double track number(1D->2D)
 		Seek88(Drv, C*2+H, R);
+		Serial.println("FLOOPY:WRITE 2");
 		for (i=0; i<SendSectors; i++) {
 			for(j=0; j<0x100; j++)
+				Serial.println("FLOOPY:WRITE 3");
 				Putc88(Drv, Pop(i));	// write data
 		}
 	}
@@ -236,6 +244,8 @@ void FLOPPY::Write(void)
 	PushStatus(0);	// st2
 	PushStatus(0);	// st1
 	
+	Serial.println("FLOOPY:WRITE 4");
+	
 	PushStatus(disk[Drv]->inserted ? 0 : ST0_NOT_READY);	// st0  bit3 : media not ready
 	
 	Status = FDC_DATA_READY | FDC_FD2PC;
@@ -244,6 +254,7 @@ void FLOPPY::Write(void)
 // seek
 void FLOPPY::Seek(void)
 {
+	Serial.println("FLOOPY:SEEK");
 	int Drv,C,H;
 	
 	Drv = CmdIn.Data[1]&3;		// drive No.(0-3)
@@ -266,6 +277,7 @@ void FLOPPY::Seek(void)
 // sense interrupt status
 void FLOPPY::SenseInterruptStatus(void)
 {
+	Serial.println("FLOOPY:SenseInterruptStatus");
 	if (SeekEnd) {
 		SeekEnd = 0;
 		PushStatus(LastCylinder);
@@ -281,6 +293,7 @@ void FLOPPY::SenseInterruptStatus(void)
 // execute FDC command
 void FLOPPY::Exec()
 {
+	Serial.printf("FLOOPY:EXEC %X",(CmdIn.Data[0] & 0xf));Serial.println();
 	CmdOut.Index = 0;
 	switch (CmdIn.Data[0] & 0xf) {
 	case 0x03:	// Specify
@@ -337,15 +350,15 @@ void FLOPPY::initialize()
 		disk[i]->set_device_name(_T("%s/Disk #%d"), this_device_name, i + 1);
 		disk[i]->drive_type = DRIVE_TYPE_2D;
 	}
-	if(d_noise_seek != NULL) {
-		d_noise_seek->set_device_name(_T("Noise Player (FDD Seek)"));
-		if(!d_noise_seek->load_wav_file(_T("FDDSEEK.WAV"))) {
-			if(!d_noise_seek->load_wav_file(_T("FDDSEEK1.WAV"))) {
-				d_noise_seek->load_wav_file(_T("SEEK.WAV"));
-			}
-		}
-		d_noise_seek->set_mute(!config.sound_noise_fdd);
-	}
+	//if(d_noise_seek != NULL) {
+	//	d_noise_seek->set_device_name(_T("Noise Player (FDD Seek)"));
+	//	if(!d_noise_seek->load_wav_file(_T("FDDSEEK.WAV"))) {
+	//		if(!d_noise_seek->load_wav_file(_T("FDDSEEK1.WAV"))) {
+	//			d_noise_seek->load_wav_file(_T("SEEK.WAV"));
+	//		}
+	//	}
+	//	d_noise_seek->set_mute(!config.sound_noise_fdd);
+	//}
 //	if(d_noise_head_down != NULL) {
 //		d_noise_head_down->set_device_name(_T("Noise Player (FDD Head Load)"));
 //		d_noise_head_down->load_wav_file(_T("HEADDOWN.WAV"));
@@ -380,7 +393,9 @@ void FLOPPY::write_io8(uint32_t addr, uint32_t data)
 	// disk I/O
 	uint16_t port=(addr & 0x00ff);
 	uint8_t Value=(data & 0xff);
-	
+
+Serial.printf("FLOPPY:Write_io8 port:%X value:%X data:%X",port, Value, data);
+
 	switch(port)
 	{
 	// disk I/O
@@ -550,7 +565,9 @@ void FLOPPY::open_disk(int drv, const _TCHAR* file_path, int bank)
 {
 	if(drv < 2) {
 		disk[drv]->open(file_path, bank);
+		Serial.println("OPEN OK");
 		Seek88(drv, 0, 1);
+		Serial.println("SEEK OK");
 	}
 }
 
@@ -578,6 +595,7 @@ void FLOPPY::is_disk_protected(int drv, bool value)
 
 bool FLOPPY::is_disk_protected(int drv)
 {
+	Serial.println("IS DISL PROTECTED?");
 	if(drv < 2) {
 		return disk[drv]->write_protected;
 	}
@@ -587,7 +605,7 @@ bool FLOPPY::is_disk_protected(int drv)
 void FLOPPY::update_config()
 {
 	if(d_noise_seek != NULL) {
-		d_noise_seek->set_mute(!config.sound_noise_fdd);
+		//d_noise_seek->set_mute(!config.sound_noise_fdd);
 	}
 //	if(d_noise_head_down != NULL) {
 //		d_noise_head_down->set_mute(!config.sound_noise_fdd);
@@ -601,6 +619,7 @@ void FLOPPY::update_config()
 
 bool FLOPPY::process_state(FILEIO* state_fio, bool loading)
 {
+	Serial.println("FLOOPY:STATE");
 	if(!state_fio->StateCheckUint32(STATE_VERSION)) {
 		return false;
 	}

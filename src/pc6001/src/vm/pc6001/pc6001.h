@@ -30,8 +30,8 @@
 #define DEVICE_NAME		"NEC PC-6001mkII"
 #define CONFIG_NAME		"pc6001mk2"
 #define SUB_CPU_ROM_FILE_NAME	"SUBCPU.62"
-#define SCREEN_WIDTH		640
-#define SCREEN_HEIGHT		400
+#define SCREEN_WIDTH		320
+#define SCREEN_HEIGHT		200
 #define WINDOW_HEIGHT_ASPECT	480
 #define CPU_CLOCKS		3993600
 #define HAS_AY_3_8910
@@ -49,8 +49,8 @@
 #define DEVICE_NAME		"NEC PC-6601"
 #define CONFIG_NAME		"pc6601"
 #define SUB_CPU_ROM_FILE_NAME	"SUBCPU.66"
-#define SCREEN_WIDTH		640
-#define SCREEN_HEIGHT		400
+#define SCREEN_WIDTH		320
+#define SCREEN_HEIGHT		200
 #define WINDOW_HEIGHT_ASPECT	480
 #define CPU_CLOCKS		4000000
 #define HAS_AY_3_8910
@@ -73,7 +73,7 @@
 #define Z80_IO_WAIT
 
 // device informations for virtual machine
-#define FRAMES_PER_SEC		60
+#define FRAMES_PER_SEC		(60 / 2)
 #define LINES_PER_FRAME		262
 #define MAX_DRIVE		4
 #define MC6847_ATTR_OFS		0
@@ -101,12 +101,12 @@
 //#define USE_AUTO_KEY_CAPS
 #if !defined(_PC6001)
 #define USE_SCREEN_FILTER
-#define USE_SCANLINE
+//#define USE_SCANLINE
 #endif
 #if defined(_PC6001)
 //#define USE_SOUND_VOLUME	4
 #else
-#define USE_SOUND_VOLUME	5
+//#define USE_SOUND_VOLUME	5
 #endif
 #define USE_JOYSTICK
 //#define USE_PRINTER

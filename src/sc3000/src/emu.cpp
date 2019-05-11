@@ -2991,3 +2991,14 @@ bool EMU::load_state_tmp(const _TCHAR* file_path)
 }
 #endif
 
+void EMU::set_screen_message(String message){
+	osd->set_screen_message(message);
+}
+
+void EMU::set_disk_status(int status){
+	set_disk_status(0, status);
+}
+
+void EMU::set_disk_status(int drvNo, int status){
+	osd->set_disk_status(drvNo, status);
+}

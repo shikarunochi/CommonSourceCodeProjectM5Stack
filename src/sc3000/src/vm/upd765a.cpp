@@ -1119,7 +1119,8 @@ uint32_t UPD765A::read_sector()
 		// sector number is matched
 		if(disk[drv]->invalid_format) {
 			memset(buffer, disk[drv]->drive_mfm ? 0x4e : 0xff, 0x8000);
-			memcpy(buffer, disk[drv]->sector, disk[drv]->sector_size.sd);
+			//memcpy(buffer, disk[drv]->sector, disk[drv]->sector_size.sd);
+			disk[drv]->readSectorToBuffer(buffer, disk[drv]->sectorOffset, disk[drv]->sector_size.sd);
 		} else {
 			memcpy(buffer, disk[drv]->track + disk[drv]->data_position[i], disk[drv]->get_track_size() - disk[drv]->data_position[i]);
 			memcpy(buffer + disk[drv]->get_track_size() - disk[drv]->data_position[i], disk[drv]->track, disk[drv]->data_position[i]);
@@ -1178,7 +1179,8 @@ uint32_t UPD765A::write_sector(bool deleted)
 		}
 		// sector number is matched
 		int size = 0x80 << (id[3] & 7);
-		memcpy(disk[drv]->sector, buffer, min(size, disk[drv]->sector_size.sd));
+		//memcpy(disk[drv]->sector, buffer, min(size, disk[drv]->sector_size.sd));
+		disk[drv]->writeSectorFromBuffer(buffer, disk[drv]->sectorOffset, min(size, disk[drv]->sector_size.sd));
 		disk[drv]->set_deleted(deleted);
 		return 0;
 	}
@@ -1557,7 +1559,7 @@ void UPD765A::start_transfer()
 		head_unload_id[drv] = -1;
 	}
 	if(!fdc[drv].head_load) {
-		if(d_noise_head_down != NULL) d_noise_head_down->play();
+		//if(d_noise_head_down != NULL) d_noise_head_down->play();
 		fdc[drv].head_load = true;
 	}
 }
@@ -1660,7 +1662,7 @@ void UPD765A::close_disk(int drv)
 {
 	if(drv < MAX_DRIVE && disk[drv]->inserted) {
 		if(fdc[drv].head_load) {
-			if(d_noise_head_up != NULL) d_noise_head_up->play();
+			//if(d_noise_head_up != NULL) d_noise_head_up->play();
 			fdc[drv].head_load = false;
 		}
 		disk[drv]->close();

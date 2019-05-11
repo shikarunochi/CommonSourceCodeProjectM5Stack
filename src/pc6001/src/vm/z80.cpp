@@ -10,7 +10,7 @@
 
 	[ Z80 ]
 */
-
+#pragma GCC optimize ("O3")
 #include "z80.h"
 #ifdef USE_DEBUGGER
 #include "debugger.h"
@@ -273,9 +273,6 @@ inline uint8_t Z80::FETCHOP()
 	int wait;
 	uint8_t val = d_mem->fetch_op(pctmp, &wait);
 	icount -= wait;
-
-	//Serial.printf("Address:%04x Memory:%02x", pctmp, val);
-	//Serial.println();
 	return val;
 }
 

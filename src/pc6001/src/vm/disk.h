@@ -47,7 +47,8 @@
 #define SPECIAL_DISK_FM7_FLEX		18
 
 // d88 constant
-#define DISK_BUFFER_SIZE	0x380000	// 3.5MB
+//#define DISK_BUFFER_SIZE	0x380000	// 3.5MB
+#define DISK_BUFFER_SIZE	0x100000	// 1.0MB
 #define TRACK_BUFFER_SIZE	0x080000	// 0.5MB
 
 class FILEIO;
@@ -59,7 +60,10 @@ protected:
 	EMU* emu;
 #endif
 private:
-	uint8_t *buffer;//[DISK_BUFFER_SIZE + TRACK_BUFFER_SIZE];
+	//uint8_t *buffer;//[DISK_BUFFER_SIZE + TRACK_BUFFER_SIZE];
+	//uint8_t *tmp_buffer;//[DISK_BUFFER_SIZE];
+	FILEIO* fio;
+	uint8_t read_buffer[1024];
 	_TCHAR orig_path[_MAX_PATH];
 	_TCHAR dest_path[_MAX_PATH];
 	pair32_t file_size;
@@ -75,7 +79,8 @@ private:
 	int solid_ncyl, solid_nside, solid_nsec, solid_size;
 	bool solid_mfm;
 	
-	void set_sector_info(uint8_t *t);
+	//void set_sector_info(uint8_t *t);
+	void set_sector_info(int offset);
 	void trim_buffer();
 	
 	// teledisk image decoder (td0)
@@ -112,7 +117,8 @@ public:
 		is_special_disk = 0;
 		file_size.d = 0;
 		sector_size.sd = sector_num.sd = 0;
-		sector = NULL;
+		//sector = NULL;
+		sectorOffset = -1;
 		drive_type = DRIVE_TYPE_UNK;
 		drive_rpm = 0;
 		drive_mfm = true;
@@ -120,7 +126,12 @@ public:
 		static int num = 0;
 		drive_num = num++;
 		set_device_name(_T("Floppy Disk Drive #%d"), drive_num + 1);
+
+		fdi_header = (uint8_t*)ps_malloc(4096);
+		//tmp_buffer = (uint8_t *)ps_malloc(DISK_BUFFER_SIZE);
+		//buffer = (uint8_t*)ps_malloc(DISK_BUFFER_SIZE + TRACK_BUFFER_SIZE);	
 		track = (uint8_t*)ps_malloc(TRACK_BUFFER_SIZE);
+
 	}
 	~DISK()
 	{
@@ -181,7 +192,8 @@ public:
 //	int gap3_size;
 	
 	// sector
-	uint8_t* sector;
+	//uint8_t* sector;
+	int sectorOffset;
 	pair32_t sector_size;
 	uint8_t id[6];
 	uint8_t density;
@@ -244,6 +256,11 @@ public:
 		return (const _TCHAR *)this_device_name;
 	}
 	_TCHAR this_device_name[128];
+
+	unsigned char readSector(int position);
+ 	void writeSector(int position, unsigned char value);
+	void readSectorToBuffer(uint8_t* buffer, int position, int size);
+	void writeSectorFromBuffer(uint8_t* buffer, int position, int size);
 };
 
 #endif

@@ -81,6 +81,7 @@ FILEIO::FILEIO()
 	fp = NULL;
 #endif
 	path[0] = _T('\0');
+	need_flush = false;
 }
 
 FILEIO::~FILEIO(void)
@@ -176,7 +177,7 @@ bool FILEIO::Fopen(const _TCHAR *file_path, int mode)
 	}
 #endif
 #if defined(_M5Stack)
-Serial.println("M5 FILE");
+	Serial.printf("OpenMode:%d",mode);Serial.println();
 	switch(mode) {
 	case FILEIO_READ_BINARY:
 		return (file = SD.open(file_path, "r"));
@@ -310,6 +311,7 @@ void FILEIO::Fclose()
 #endif
 #if defined(_M5Stack)
 	if(file == true){
+		CheckFlush();
 		file.close();
 	}
 #else
@@ -323,11 +325,15 @@ void FILEIO::Fclose()
 
 long FILEIO::FileLength()
 {
+#if defined(_M5Stack)
+	return file.size();
+#else
 	long pos = Ftell();
 	Fseek(0, FILEIO_SEEK_END);
 	long len = Ftell();
 	Fseek(pos, FILEIO_SEEK_SET);
 	return len;
+#endif
 }
 
 #define GET_VALUE(type) \
@@ -849,12 +855,10 @@ int FILEIO::Fgetc()
 #endif
 #if defined(_M5Stack)
 	if(file.available()){
-		uint8_t *buffer;
-		if(file.read(buffer, 1) == 1){
-			return *buffer;
-		}
-			return 0;
+		CheckFlush();
+		return file.read();
 	}
+	return EOF;
 #else
 	if(fp != NULL) {
 		return fgetc(fp);
@@ -872,6 +876,7 @@ int FILEIO::Fputc(int c)
 #endif
 #if defined(_M5Stack)
 	if(file == true){
+		need_flush = true;
 		return file.write(c);
 	}
 #else
@@ -890,6 +895,7 @@ char *FILEIO::Fgets(char *str, int n)
 	} else
 #endif
 #if defined(_M5Stack)
+	CheckFlush();
 	int count = 0;
 	String buf = "\0";
 	while(file.available()){
@@ -991,6 +997,7 @@ size_t FILEIO::Fread(void* buffer, size_t size, size_t count)
 #endif
 #if defined(_M5Stack)
 	if(file == true) {
+		CheckFlush();
 		size_t readFileSize = file.read((byte*)buffer, size * count) ;
 		return readFileSize;
 	}
@@ -1010,6 +1017,7 @@ size_t FILEIO::Fwrite(const void* buffer, size_t size, size_t count)
 		return gzfwrite(buffer, size, count, gz);
 	} else
 #endif
+Serial.println("FWRITE:NOT IMPLIMENT!");
 //	if(fp != NULL) {
 //		return fwrite(buffer, size, count, fp);
 //	}
@@ -1031,6 +1039,7 @@ int FILEIO::Fseek(long offset, int origin)
 	} else
 #endif
 #if defined(_M5Stack)
+	CheckFlush();
 	if(file == true) {
 		switch(origin) {
 		case FILEIO_SEEK_CUR:
@@ -1066,6 +1075,7 @@ long FILEIO::Ftell()
 #endif
 #if defined(_M5Stack)
 	if(file == true) {
+		CheckFlush();
 		return file.position();
 	}
 	return 0;
@@ -1357,5 +1367,11 @@ void FILEIO::StateBuffer(void *buffer, size_t size, size_t count)
 		Fread(buffer, size, count);
 	} else {
 		Fwrite(buffer, size, count);
+	}
+}
+void FILEIO::CheckFlush(){
+	if(need_flush==true){
+		file.flush();
+		need_flush = false;
 	}
 }

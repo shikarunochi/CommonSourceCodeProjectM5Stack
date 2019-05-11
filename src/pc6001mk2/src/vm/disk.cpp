@@ -106,7 +106,6 @@ static const fd_format_t fd_formats[] = {
 
 void DISK::open(const _TCHAR* file_path, int bank)
 {
-	Serial.println("DISK::OPEN");
 	// check current disk image
 	if(inserted) {
 		if(_tcsicmp(orig_path, file_path) == 0 && file_bank == bank) {
@@ -139,7 +138,6 @@ void DISK::open(const _TCHAR* file_path, int bank)
 		fio->Fseek(0, FILEIO_SEEK_SET);
 
 		if(check_file_extension(file_path, _T(".d88")) || check_file_extension(file_path, _T(".d77")) || check_file_extension(file_path, _T(".1dd"))) {
-
 			// d88 image
 			uint32_t offset = 0;
 			for(int i = 0; i < bank; i++) {
@@ -148,7 +146,7 @@ void DISK::open(const _TCHAR* file_path, int bank)
 			}
 			fio->Fseek(offset + 0x1c, FILEIO_SEEK_SET);
 			file_size.d = fio->FgetUint32_LE();
-			Serial.printf("bufferSize=%d",file_size.d);Serial.println();
+			//Serial.printf("bufferSize=%d",file_size.d);Serial.println();
 			fio->Fseek(offset, FILEIO_SEEK_SET);
 			//fio->Fread(buffer, file_size.d, 1);
 			file_bank = bank;
@@ -212,11 +210,12 @@ void DISK::open(const _TCHAR* file_path, int bank)
 	//delete fio;
 	
 	// check loaded image
-	fio->Fread(read_buffer,0x2b0,1);//Header
+	//fio->Fread(read_buffer,0x2b0,1);//Header
+	fio->Fread(read_buffer,1024,1);//Header
 	if(inserted) {
 		// check media type
 		if(media_type == MEDIA_TYPE_UNK) {
-			Serial.printf("MediaType:%X",read_buffer[0x1b]);Serial.println();
+			//Serial.printf("MediaType:%X",read_buffer[0x1b]);Serial.println();
 			if((media_type = read_buffer[0x1b]) == MEDIA_TYPE_2HD) {
 				// check 1.2MB or 1.44MB
 				for(int trkside = 0; trkside < 164; trkside++) {
@@ -239,10 +238,12 @@ void DISK::open(const _TCHAR* file_path, int bank)
 				}
 			}
 		}
-		Serial.printf("Final MediaType:%X",media_type);Serial.println();		
+		//Serial.printf("Final MediaType:%X",media_type);Serial.println();		
 		// check two side
 		int valid_side = 0;
 		
+		//fio->Fread(read_buffer,0x2b0,1);//Header 改めて読みなおし
+
 		for(int trk = 0; trk < 82; trk++) {
 			for(int side = 0; side < 2; side++) {
 				int trkside = trk * 2 + side;
@@ -257,10 +258,10 @@ void DISK::open(const _TCHAR* file_path, int bank)
 		}
 		// FIXME: unformat disk is recognized as two side
 		two_side = (valid_side != 1);
-		Serial.printf("Two Side:%d",two_side);Serial.println();		
+		//Serial.printf("Two Side:%d",two_side);Serial.println();		
 		// fix write protect flag
 		if(read_buffer[0x1a] != 0) {
-			Serial.println("Write protected");
+			//Serial.println("Write protected");
 			read_buffer[0x1a] = 0x10; //TODO:消えてしまうので意味のない処理
 			write_protected = true;
 		}
@@ -275,10 +276,13 @@ void DISK::open(const _TCHAR* file_path, int bank)
 		if(media_type == MEDIA_TYPE_2D) {
 			// check first track
 			pair32_t offset, sector_num, data_size;
-			offset.read_4bytes_le_from(buffer + 0x20);
-			if(IS_VALID_TRACK(offset.d)) {
+			//offset.read_4bytes_le_from(buffer + 0x20);
+			offset.read_4bytes_le_from(read_buffer + 0x20);
+			//if(IS_VALID_TRACK(offset.d)) {
+			if(!((offset.d) >= 0x20 && (offset.d) < sizeof(read_buffer))) {
 				// check the sector (c,h,r,n) = (0,0,7,1) or (0,0,f7,2)
-				uint8_t* t = buffer + offset.d;
+				//uint8_t* t = buffer + offset.d;
+				uint8_t* t = read_buffer + offset.d;
 				sector_num.read_2bytes_le_from(t + 4);
 				for(int i = 0; i < sector_num.sd; i++) {
 					data_size.read_2bytes_le_from(t + 14);
@@ -471,11 +475,11 @@ void DISK::open(const _TCHAR* file_path, int bank)
 		if(media_type == MEDIA_TYPE_2D) {
 			// check first track
 			pair32_t offset;
-			offset.read_4bytes_le_from(buffer + 0x20);
-			if(IS_VALID_TRACK(offset.d)) {
+			offset.read_4bytes_le_from(read_buffer + 0x20);
+			if(((offset.d) >= 0x20 && (offset.d) < sizeof(read_buffer))) {
 				// check first sector
 				static const uint8_t batten[] = {0xca, 0xde, 0xaf, 0xc3, 0xdd, 0x20, 0xc0, 0xc7, 0xb7};
-				uint8_t *t = buffer + offset.d;
+				uint8_t *t = read_buffer + offset.d;
 #if defined(_X1TURBO) || defined(_X1TURBOZ)
 //				if(strncmp((char *)(t + 0x11), "turbo ALPHA", 11) == 0) {
 //					is_special_disk = SPECIAL_DISK_X1TURBO_ALPHA;
@@ -541,14 +545,14 @@ bool DISK::get_track_tmp(int trk, int side)
 //	no_skew = true;
 	// disk not inserted or invalid media type
 	if(!(inserted && check_media_type())) {
-		//Serial.println("Not Inserted");
+		Serial.println("Not Inserted");
 		return false;
 	}
 	
 	// search track
 	int trkside = is_1dd_image ? trk : (trk * 2 + (side & 1));
 	if(!(0 <= trkside && trkside < 164)) {
-		//Serial.println("trkSideError");
+		Serial.println("trkSideError");
 		return false;
 	}
 	cur_track = trk;
@@ -2492,7 +2496,7 @@ bool DISK::process_state(FILEIO* state_fio, bool loading)
 	state_fio->StateValue(changed);
 	state_fio->StateValue(media_type);
 	state_fio->StateValue(is_special_disk);
-	state_fio->StateArray(track, sizeof(track), 1);
+	//state_fio->StateArray(track, sizeof(track), 1);
 	state_fio->StateValue(sector_num.sd);
 	state_fio->StateValue(track_mfm);
 	state_fio->StateValue(invalid_format);

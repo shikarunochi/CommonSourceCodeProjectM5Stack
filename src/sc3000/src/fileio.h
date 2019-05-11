@@ -49,6 +49,8 @@ private:
 	int open_mode;
 #if defined(_M5Stack)
 	File file;
+	bool need_flush;
+	void CheckFlush();
 #else
 	FILE* fp;
 #endif

@@ -2434,14 +2434,10 @@ uint32_t EMU::is_hard_disk_accessed()
 #ifdef USE_TAPE
 void EMU::play_tape(int drv, const _TCHAR* file_path)
 {
-	Serial.println("PlayTape");
 	if(drv < USE_TAPE) {
-		Serial.println("PlayTape1");
 		if(vm->is_tape_inserted(drv)) {
-			Serial.println("PlayTape2");
 			vm->close_tape(drv);
 			// wait 0.5sec
-			Serial.println("PlayTape3");
 			tape_status[drv].wait_count = (int)(vm->get_frame_rate() / 2);
 #if USE_TAPE > 1
 			out_message(_T("CMT%d: Ejected"), drv + BASE_TAPE_NUM);
@@ -2449,7 +2445,6 @@ void EMU::play_tape(int drv, const _TCHAR* file_path)
 			out_message(_T("CMT: Ejected"));
 #endif
 		} else if(tape_status[drv].wait_count == 0) {
-			Serial.println("PlayTape4");
 			vm->play_tape(drv, file_path);
 #if USE_TAPE > 1
 			out_message(_T("CMT%d: %s"), drv + BASE_TAPE_NUM, file_path);
@@ -2457,7 +2452,6 @@ void EMU::play_tape(int drv, const _TCHAR* file_path)
 			out_message(_T("CMT: %s"), file_path);
 #endif
 		}
-		Serial.println("PlayTape5");
 		my_tcscpy_s(tape_status[drv].path, _MAX_PATH, file_path);
 		tape_status[drv].play = true;
 	}
@@ -2999,4 +2993,12 @@ bool EMU::load_state_tmp(const _TCHAR* file_path)
 
 void EMU::set_screen_message(String message){
 	osd->set_screen_message(message);
+}
+
+void EMU::set_disk_status(int status){
+	set_disk_status(0, status);
+}
+
+void EMU::set_disk_status(int drvNo, int status){
+	osd->set_disk_status(drvNo, status);
 }

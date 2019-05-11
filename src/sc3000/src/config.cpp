@@ -115,11 +115,11 @@ void initialize_config()
 	config.sound_latency = 1;	// 100msec
 	config.sound_strict_rendering = true;
 	#ifdef USE_FLOPPY_DISK
-		config.sound_noise_fdd = true;
+		config.sound_noise_fdd = false;
 	#endif
 	#ifdef USE_TAPE
-		config.sound_noise_cmt = true;
-		config.sound_play_tape = true;
+		config.sound_noise_cmt = false;
+		config.sound_play_tape = false;
 	#endif
 	
 	// input
@@ -229,10 +229,10 @@ void load_config(const _TCHAR* config_path)
 		}
 	#endif
 	#ifdef USE_QUICK_DISK
-		MyGetPrivateProfileString(_T("RecentFiles"), _T("InitialQuickDiskDir"), _T(""), config.initial_quick_disk_dir, _MAX_PATH, config_path);
+		//MyGetPrivateProfileString(_T("RecentFiles"), _T("InitialQuickDiskDir"), _T(""), config.initial_quick_disk_dir, _MAX_PATH, config_path);
 		for(int drv = 0; drv < USE_QUICK_DISK; drv++) {
 			for(int i = 0; i < MAX_HISTORY; i++) {
-				MyGetPrivateProfileString(_T("RecentFiles"), create_string(_T("RecentQuickDiskPath%d_%d"), drv + 1, i + 1), _T(""), config.recent_quick_disk_path[drv][i], _MAX_PATH, config_path);
+			//	MyGetPrivateProfileString(_T("RecentFiles"), create_string(_T("RecentQuickDiskPath%d_%d"), drv + 1, i + 1), _T(""), config.recent_quick_disk_path[drv][i], _MAX_PATH, config_path);
 			}
 		}
 	#endif
@@ -298,7 +298,7 @@ void load_config(const _TCHAR* config_path)
 	
 	// filter
 	#ifdef USE_SCREEN_FILTER
-		config.filter_type = MyGetPrivateProfileInt(_T("Screen"), _T("FilterType"), config.filter_type, config_path);
+		config.filter_type = 0;// MyGetPrivateProfileInt(_T("Screen"), _T("FilterType"), config.filter_type, config_path);
 	#endif
 	
 	// sound
@@ -462,10 +462,10 @@ void save_config(const _TCHAR* config_path)
 		}
 	#endif
 	#ifdef USE_QUICK_DISK
-		MyWritePrivateProfileString(_T("RecentFiles"), _T("InitialQuickDiskDir"), config.initial_quick_disk_dir, config_path);
+		//MyWritePrivateProfileString(_T("RecentFiles"), _T("InitialQuickDiskDir"), config.initial_quick_disk_dir, config_path);
 		for(int drv = 0; drv < USE_QUICK_DISK; drv++) {
 			for(int i = 0; i < MAX_HISTORY; i++) {
-				MyWritePrivateProfileString(_T("RecentFiles"), create_string(_T("RecentQuickDiskPath%d_%d"), drv + 1, i + 1), config.recent_quick_disk_path[drv][i], config_path);
+		//		MyWritePrivateProfileString(_T("RecentFiles"), create_string(_T("RecentQuickDiskPath%d_%d"), drv + 1, i + 1), config.recent_quick_disk_path[drv][i], config_path);
 			}
 		}
 	#endif
@@ -531,7 +531,7 @@ void save_config(const _TCHAR* config_path)
 	
 	// filter
 	#ifdef USE_SCREEN_FILTER
-		MyWritePrivateProfileInt(_T("Screen"), _T("FilterType"), config.filter_type, config_path);
+		//MyWritePrivateProfileInt(_T("Screen"), _T("FilterType"), config.filter_type, config_path);
 	#endif
 	
 	// sound

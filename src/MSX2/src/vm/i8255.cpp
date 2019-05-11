@@ -34,7 +34,6 @@ void I8255::reset()
 
 void I8255::write_io8(uint32_t addr, uint32_t data)
 {
-	//Serial.printf("I8255::write_io8 %X %X ch:%d \n", addr, data , addr &3);
 	int ch = addr & 3;
 	switch(ch) {
 	case 0:

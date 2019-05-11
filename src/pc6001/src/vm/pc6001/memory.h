@@ -124,9 +124,9 @@ private:
 	uint8_t portCE;					//I/O[CE]     LINE SETTING  BITMAP (low) */
 	uint8_t portCF;					//I/O[CF]     LINE SETTING  BITMAP (High) */
 	int palet[16];				// SR PALET
-	uint8_t screen[204][640];
+	uint8_t *screen;//[204][640];
 #else
-	uint8_t screen[200][320];
+	uint8_t* screen;//[200][320];
 #endif
 	
 	void RefreshScr10();
@@ -158,6 +158,9 @@ public:
 		inserted = false;
 		set_device_name(_T("Memory Bus"));
 		MEMORY_BASE = (uint8_t*)ps_malloc(MEMORY_SIZE);
+#ifndef _PC6001
+		screen = (uint8_t*)ps_malloc(200*320);
+#endif
 	}
 	~MEMORY() {}
 	

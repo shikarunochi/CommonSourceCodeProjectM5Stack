@@ -4,6 +4,9 @@
 	Author : Takeda.Toshiya
 	Date   : 2006.08.18 -
 
+	M5Stack version.
+	modified by shikarunochi 2019.03.24 - 
+
 	[ data recorder ]
 */
 
@@ -25,7 +28,15 @@ void DATAREC::initialize()
 {
 	play_fio = new FILEIO();
 	rec_fio = new FILEIO();
-	
+
+#if defined(USE_MZT)
+	mztFile = new MZTFILE();
+#endif	
+#if defined(USE_TAP)
+	tapFile = new TAPFILE();
+#endif
+
+
 	memset(rec_file_path, sizeof(rec_file_path), 1);
 	play = rec = remote = trigger = false;
 	ff_rew = 0;
@@ -33,9 +44,7 @@ void DATAREC::initialize()
 	register_id = -1;
 	realtime = false;
 	
-	//buffer = NULL;//buffer_bak = NULL;
-	casData = NULL;
-	
+	buffer = buffer_bak = NULL;
 #ifdef DATAREC_SOUND
 	sound_buffer = NULL;
 #endif
@@ -94,7 +103,7 @@ void DATAREC::write_signal(int id, uint32_t data, uint32_t mask)
 	
 	if(id == SIG_DATAREC_MIC) {
 		if(out_signal != signal) {
-			//touch_sound();
+			touch_sound();
 			if(rec && remote) {
 				if(out_signal) {
 					pcm_positive_clocks += get_passed_clock(pcm_prev_clock);
@@ -116,12 +125,12 @@ void DATAREC::write_signal(int id, uint32_t data, uint32_t mask)
 			out_signal = signal;
 		}
 	} else if(id == SIG_DATAREC_REMOTE) {
-		//touch_sound();
+		touch_sound();
 		set_remote(signal);
 	} else if(id == SIG_DATAREC_TRIG) {
 		// L->H: remote signal is switched
 		if(signal && !trigger) {
-			//touch_sound();
+			touch_sound();
 			set_remote(!remote);
 		}
 		trigger = signal;
@@ -155,36 +164,65 @@ void DATAREC::event_callback(int event_id, int err)
 				my_stprintf_s(message, 1024, _T("Play (%d %%)"), get_tape_position());
 			}
 			bool signal = in_signal;
-			if(ff_rew < 0) {
-				//if((buffer_bak != NULL) && (buffer != NULL)) {
-				//	my_memcpy(buffer, buffer_bak, buffer_length);
-				//}
-				buffer_ptr = 0;
-				set_remote(false);	// top of tape
-			} else {
-				if(casData != NULL) {
-					int tmpBuffer = 0;
-					while(buffer_ptr < buffer_length) {
-						//if((getBuffer(buffer_ptr) & 0x7f) == 0) {
-						if((tmpBuffer & 0x7f) == 0) {
-					 		if(++buffer_ptr == buffer_length) {
-								set_remote(false);	// end of tape
-								signal = false;
-								break;
-							}
-							signal = ((getBuffer(buffer_ptr) & 0x80) != 0);
-							tmpBuffer = getBuffer(buffer_ptr);
-						} else {
-							signal = ((getBuffer(buffer_ptr) & 0x80) != 0);
-							uint8_t tmp = getBuffer(buffer_ptr);
-							tmpBuffer = (tmp & 0x80) | ((tmp & 0x7f) - 1);
-							break;
-						}
+			if(is_wav) {
+				//if(buffer_ptr >= 0 && buffer_ptr < buffer_length) {
+				//	if(buffer != NULL) {
+				//signal = ((buffer[buffer_ptr] & 0x80) != 0);
+				signal = ((nextBuffer() & 0x80) != 0);
+				//Serial.printf("SIGNAL:%d\n",signal);
+				//	} else {
+				//		signal = false;
+				//	}
+#ifdef DATAREC_SOUND
+					if(sound_buffer != NULL && ff_rew == 0) {
+						sound_sample = sound_buffer[buffer_ptr];
+					} else {
+						sound_sample = 0;
 					}
+#endif
+				//
+				//}
+				if(ff_rew < 0) {
+				//巻き戻し処理はしてないです
+				//	if((buffer_ptr = max(buffer_ptr - 1, 0)) == 0) {
+						set_remote(false);	// top of tape
+						signal = false;
 				} else {
-					set_remote(false);	// end of tape
-					signal = false;
+					if(get_tape_position() > get_tape_size()) {
+						set_remote(false);	// end of tape
+						signal = false;
+					}
 				}
+				update_event();
+			// } else {
+			// 	if(ff_rew < 0) {
+			// 		if((buffer_bak != NULL) && (buffer != NULL)) {
+			// 			my_memcpy(buffer, buffer_bak, buffer_length);
+			// 		}
+			// 		buffer_ptr = 0;
+			// 		set_remote(false);	// top of tape
+			// 	} else {
+			// 		if(buffer != NULL) {
+			// 			while(buffer_ptr < buffer_length) {
+			// 				if((buffer[buffer_ptr] & 0x7f) == 0) {
+			// 					if(++buffer_ptr == buffer_length) {
+			// 						set_remote(false);	// end of tape
+			// 						signal = false;
+			// 						break;
+			// 					}
+			// 					signal = ((buffer[buffer_ptr] & 0x80) != 0);
+			// 				} else {
+			// 					signal = ((buffer[buffer_ptr] & 0x80) != 0);
+			// 					uint8_t tmp = buffer[buffer_ptr];
+			// 					buffer[buffer_ptr] = (tmp & 0x80) | ((tmp & 0x7f) - 1);
+			// 					break;
+			// 				}
+			// 			}
+			// 		} else {
+			// 			set_remote(false);	// end of tape
+			// 			signal = false;
+			// 		}
+			// 	}
 			}
 			// notify the signal is changed
 			if(signal != in_signal) {
@@ -198,42 +236,50 @@ void DATAREC::event_callback(int event_id, int err)
 				in_signal = signal;
 				signal_changed++;
 				//touch_sound();
-				//write_signals(&outputs_ear, in_signal ? 0xffffffff : 0);
+				//Serial.printf("SignalChanged:Write Signal:%X to [%d] %s ID[%d]\n",in_signal ? 0xffffffff : 0
+				//,outputs_ear.count,outputs_ear.item[0].device->get_device_name()
+				//,outputs_ear.item[0].id
+				//);
+				if(ff_rew == 0){
+					String tapeLoadMessage = "TAPE LOAD: " + String(get_tape_percent()) + " %";
+					emu->set_screen_message(tapeLoadMessage);
+				}else{
+					emu->set_screen_message("");
+				}
+				write_signals(&outputs_ear, in_signal ? 0xffffffff : 0);
 			}
-			/*
 			// chek apss state
-			if(apss_buffer != NULL) {
-				int ptr = (apss_ptr++) % (sample_rate * 2);
-				if(apss_buffer[ptr]) {
-					apss_count--;
-				}
-				if(in_signal) {
-					apss_count++;
-				}
-				apss_buffer[ptr] = in_signal;
+			// if(apss_buffer != NULL) {
+			// 	int ptr = (apss_ptr++) % (sample_rate * 2);
+			// 	if(apss_buffer[ptr]) {
+			// 		apss_count--;
+			// 	}
+			// 	if(in_signal) {
+			// 		apss_count++;
+			// 	}
+			// 	apss_buffer[ptr] = in_signal;
 				
-				if(apss_ptr >= sample_rate * 2) {
-					double rate = (double)apss_count / (double)(sample_rate * 2);
-					if(rate > 0.9 || rate < 0.1) {
-						if(apss_signals) {
-							if(apss_remain > 0) {
-								apss_remain--;
-							} else if(apss_remain < 0) {
-								apss_remain++;
-							}
-							write_signals(&outputs_apss, 0xffffffff);
-							apss_signals = false;
-						}
-					} else {
-						if(!apss_signals) {
-							write_signals(&outputs_apss, 0);
-							apss_signals = true;
-						}
-					}
-				}
-			}
-			*/
-		}/* else if(rec && buffer != NULL) {
+			// 	if(apss_ptr >= sample_rate * 2) {
+			// 		double rate = (double)apss_count / (double)(sample_rate * 2);
+			// 		if(rate > 0.9 || rate < 0.1) {
+			// 			if(apss_signals) {
+			// 				if(apss_remain > 0) {
+			// 					apss_remain--;
+			// 				} else if(apss_remain < 0) {
+			// 					apss_remain++;
+			// 				}
+			// 				write_signals(&outputs_apss, 0xffffffff);
+			// 				apss_signals = false;
+			// 			}
+			// 		} else {
+			// 			if(!apss_signals) {
+			// 				write_signals(&outputs_apss, 0);
+			// 				apss_signals = true;
+			// 			}
+			// 		}
+			// 	}
+			// }
+		} else if(rec && buffer != NULL) {
 			if(out_signal) {
 				positive_clocks += get_passed_clock(prev_clock);
 			} else {
@@ -290,33 +336,31 @@ void DATAREC::event_callback(int event_id, int err)
 			prev_clock = get_current_clock();
 			positive_clocks = negative_clocks = 0;
 		}
-		*/
 	}
 }
 
 void DATAREC::set_remote(bool value)
 {
 	if(remote != value) {
-		/*
 		if(value) {
-			if(d_noise_play != NULL) {
-				d_noise_play->play();
-			}
-			if(d_noise_fast != NULL && ff_rew != 0) {
-				d_noise_fast->play();
-			}
+			//if(d_noise_play != NULL) {
+			//	d_noise_play->play();
+			//}
+			//if(d_noise_fast != NULL && ff_rew != 0) {
+			//	d_noise_fast->play();
+			//}
 		} else {
-			if(d_noise_stop != NULL) {
-				d_noise_stop->play();
-			}
-			if(d_noise_fast != NULL) {
-				d_noise_fast->stop();
-			}
+			//if(d_noise_stop != NULL) {
+			//	d_noise_stop->play();
+			//}
+			//if(d_noise_fast != NULL) {
+			//	d_noise_fast->stop();
+			//}
 		}
-		*/
 		remote = value;
 		update_event();
 	}
+	emu->set_screen_message("");
 }
 
 void DATAREC::set_ff_rew(int value)
@@ -326,15 +370,15 @@ void DATAREC::set_ff_rew(int value)
 			cancel_event(this, register_id);
 			register_id = -1;
 		}
-		if(value != 0) {
-			if(d_noise_fast != NULL && remote) {
-				d_noise_fast->play();
-			}
-		} else {
-			if(d_noise_fast != NULL) {
-				d_noise_fast->stop();
-			}
-		}
+		// if(value != 0) {
+		// 	if(d_noise_fast != NULL && remote) {
+		// 		d_noise_fast->play();
+		// 	}
+		// } else {
+		// 	if(d_noise_fast != NULL) {
+		// 		d_noise_fast->stop();
+		// 	}
+		// }
 		ff_rew = value;
 		apss_signals = false;
 		update_event();
@@ -344,7 +388,7 @@ void DATAREC::set_ff_rew(int value)
 bool DATAREC::do_apss(int value)
 {
 	bool result = false;
-	/*
+	
 	if(play) {
 		set_ff_rew(0);
 		set_remote(true);
@@ -374,7 +418,6 @@ bool DATAREC::do_apss(int value)
 			my_stprintf_s(message, 1024, _T("APSS Rewind"));
 		}
 	}
-	*/
 	return result;
 }
 
@@ -400,16 +443,17 @@ void DATAREC::update_event()
 			cancel_event(this, register_id);
 			register_id = -1;
 			if(play) {
-				if(buffer_ptr >= buffer_length) {
-					my_stprintf_s(message, 1024, _T("Stop (End-of-Tape)"));
-				} else if(buffer_ptr <= 0) {
-					my_stprintf_s(message, 1024, _T("Stop (Beginning-of-Tape)"));
-				} else {
-					my_stprintf_s(message, 1024, _T("Stop (%d %%)"), get_tape_position());
-				}
+				// if(buffer_ptr >= buffer_length) {
+				// 	my_stprintf_s(message, 1024, _T("Stop (End-of-Tape)"));
+				// } else if(buffer_ptr <= 0) {
+				// 	my_stprintf_s(message, 1024, _T("Stop (Beginning-of-Tape)"));
+				// } else {
+				// 	my_stprintf_s(message, 1024, _T("Stop (%d %%)"), get_tape_position());
+				// }
 			} else {
 				my_stprintf_s(message, 1024, _T("Stop"));
 			}
+			emu->set_screen_message("");
 		}
 		prev_clock = 0;
 	}
@@ -422,8 +466,8 @@ void DATAREC::update_event()
 #endif
 	write_signals(&outputs_remote, remote ? 0xffffffff : 0);
 	write_signals(&outputs_rotate, (register_id != -1) ? 0xffffffff : 0);
-	write_signals(&outputs_end, (buffer_ptr == buffer_length) ? 0xffffffff : 0);
-	write_signals(&outputs_top, (buffer_ptr == 0) ? 0xffffffff : 0);
+	write_signals(&outputs_end, (get_tape_position() == get_tape_size() ) ? 0xffffffff : 0);
+	write_signals(&outputs_top, (get_tape_position() == 0) ? 0xffffffff : 0);
 	
 	update_realtime_render();
 }
@@ -440,11 +484,9 @@ void DATAREC::update_realtime_render()
 
 bool DATAREC::play_tape(const _TCHAR* file_path)
 {
-	//
 	close_tape();
 	
 	if(play_fio->Fopen(file_path, FILEIO_READ_BINARY)) {
-		/*
 		if(check_file_extension(play_fio->FilePath(), _T(".wav")) || check_file_extension(play_fio->FilePath(), _T(".mti"))) {
 			// standard PCM wave file
 			if((buffer_length = load_wav_image(0)) != 0) {
@@ -453,24 +495,37 @@ bool DATAREC::play_tape(const _TCHAR* file_path)
 		} else if(check_file_extension(play_fio->FilePath(), _T(".t77"))) {
 			// FUJITSU FM-7 series tape image
 			if((buffer_length = load_t77_image()) != 0) {
-				buffer = (uint8_t *)ps_malloc(buffer_length);
+				buffer = (uint8_t *)malloc(buffer_length);
 				load_t77_image();
 				play = is_wav = true;
 			}
 		} else if(check_file_extension(play_fio->FilePath(), _T(".tap"))) {
 			// SHARP X1 series tape image
-			if((buffer_length = load_tap_image()) != 0) {
-				buffer = (uint8_t *)ps_malloc(buffer_length);
-				load_tap_image();
+			if(load_tap_image() != 0){
 				play = is_wav = true;
+			}else{
+				Serial.println("SIZE = 0");
 			}
+			// if((buffer_length = load_tap_image()) != 0) {
+			// 	Serial.printf("tap image size:%d",buffer_length);
+			// 	buffer = (uint8_t *)ps_malloc(buffer_length);
+			// 	Serial.println(":OK!");
+			// 	load_tap_image();
+			// 	Serial.println("load OK!");
+			// 	play = is_wav = true;
+			// }
 		} else if(check_file_extension(play_fio->FilePath(), _T(".mzt")) || check_file_extension(play_fio->FilePath(), _T(".mzf")) || check_file_extension(play_fio->FilePath(), _T(".m12"))) {
 			// SHARP MZ series tape image
-			if((buffer_length = load_mzt_image()) != 0) {
-				buffer = (uint8_t *)ps_malloc(buffer_length);
-				load_mzt_image();
+			if(load_mzt_image() != 0){
 				play = is_wav = true;
+			}else{
+				Serial.println("SIZE = 0");
 			}
+			//if((buffer_length = load_mzt_image()) != 0) {
+			//	buffer = (uint8_t *)malloc(buffer_length);
+			//	load_mzt_image();
+			//	play = is_wav = true;
+			//}
 		} else if(check_file_extension(play_fio->FilePath(), _T(".mtw"))) {
 			// skip mzt image
 			uint8_t header[128];
@@ -483,70 +538,63 @@ bool DATAREC::play_tape(const _TCHAR* file_path)
 		} else if(check_file_extension(play_fio->FilePath(), _T(".p6"))) {
 			// NEC PC-6001/6601 series tape image
 			if((buffer_length = load_p6_image(false)) != 0) {
-				buffer = (uint8_t *)ps_malloc(buffer_length);
+				buffer = (uint8_t *)malloc(buffer_length);
 				load_p6_image(false);
 				play = is_wav = true;
 			}
 		} else if(check_file_extension(play_fio->FilePath(), _T(".p6t"))) {
 			// NEC PC-6001/6601 series tape image
 			if((buffer_length = load_p6_image(true)) != 0) {
-				buffer = (uint8_t *)ps_malloc(buffer_length);
+				buffer = (uint8_t *)malloc(buffer_length);
 				load_p6_image(true);
 				play = is_wav = true;
 			}
 		} else if(check_file_extension(play_fio->FilePath(), _T(".bin"))) {
 			// HITACH BASIC Master Jr tape image (bm2)
 			if((buffer_length = load_bmjr_image()) != 0) {
-				buffer = (uint8_t *)ps_malloc(buffer_length);
+				buffer = (uint8_t *)malloc(buffer_length);
 				load_bmjr_image();
 				play = is_wav = true;
 			}
-		} else */
-		if(check_file_extension(play_fio->FilePath(), _T(".cas"))) {
+		} else if(check_file_extension(play_fio->FilePath(), _T(".cas"))) {
 			// standard cas image for my emulator
-			//if((buffer_length = load_cas_image()) != 0) {
-			//	buffer = (uint8_t *)ps_malloc(buffer_length);
-			//	Serial.printf("BufferLength:%d \n",buffer_length);
-			load_cas_image();
-				play = true;// is_wav = true;
-			//}
+			if((buffer_length = load_cas_image()) != 0) {
+				buffer = (uint8_t *)malloc(buffer_length);
+				load_cas_image();
+				play = is_wav = true;
+			}
 		}
-		play_fio->Fclose();
-		Serial.println("CLOSE");
+		//play_fio->Fclose();
 	}
 	if(play) {
-		//if(!is_wav && buffer_length != 0) {
-			//buffer_bak = (uint8_t *)malloc(buffer_length);
-			//my_memcpy(buffer_bak, buffer, buffer_length);
-		//}
+		// if(!is_wav && buffer_length != 0) {
+		// 	buffer_bak = (uint8_t *)malloc(buffer_length);
+		// 	my_memcpy(buffer_bak, buffer, buffer_length);
+		// }
 		
-		// get the first signal
-		bool signal = ((getBuffer(0) & 0x80) != 0);
-		Serial.println("PLAY 2-1");
-		if(signal != in_signal) {
-			//touch_sound();
-			//write_signals(&outputs_ear, signal ? 0xffffffff : 0);
-			in_signal = signal;
-		}
-		Serial.println("PLAY 3");
-		// initialize apss
-		/*
-		apss_buffer_length = sample_rate * 2;
-		apss_buffer = (bool *)ps_calloc(apss_buffer_length, 1);
-		apss_ptr = apss_count = 0;
-		apss_signals = false;
-		write_signals(&outputs_apss, 0);
-		Serial.println("PLAY 4");
-		*/
+		// // get the first signal
+		// bool signal = ((buffer[0] & 0x80) != 0);
+		//bool signal = ((nextBuffer() & 0x80) != 0);
+		// if(signal != in_signal) {
+		// 	touch_sound();
+		//write_signals(&outputs_ear, signal ? 0xffffffff : 0);
+		//in_signal = signal;
+		// }
+		
+		// // initialize apss
+		// apss_buffer_length = sample_rate * 2;
+		// apss_buffer = (bool *)calloc(apss_buffer_length, 1);
+		// apss_ptr = apss_count = 0;
+		// apss_signals = false;
+		// write_signals(&outputs_apss, 0);
+		
 		update_event();
-		Serial.println("PLAY 5");
 	}
 	return play;
 }
 
 bool DATAREC::rec_tape(const _TCHAR* file_path)
 {
-	/*
 	close_tape();
 	
 	if(rec_fio->Fopen(file_path, FILEIO_READ_WRITE_NEW_BINARY)) {
@@ -554,7 +602,7 @@ bool DATAREC::rec_tape(const _TCHAR* file_path)
 		sample_rate = 48000;
 		sample_usec = 1000000. / sample_rate;
 		buffer_length = 1024 * 1024;
-		buffer = (uint8_t *)ps_calloc(buffer_length, 1);
+		buffer = (uint8_t *)calloc(buffer_length, 1);
 		
 		if(check_file_extension(file_path, _T(".wav"))) {
 			// write wave header
@@ -584,7 +632,6 @@ bool DATAREC::rec_tape(const _TCHAR* file_path)
 		rec = true;
 		update_event();
 	}
-	*/
 	return rec;
 }
 
@@ -601,7 +648,7 @@ void DATAREC::close_tape()
 	update_event();
 	
 	// no sounds
-	//write_signals(&outputs_ear, 0);
+	write_signals(&outputs_ear, 0);
 	in_signal = false;
 }
 
@@ -611,7 +658,6 @@ void DATAREC::close_file()
 		play_fio->Fclose();
 	}
 	if(rec_fio->IsOpened()) {
-		/*
 		if(rec) {
 			if(is_tap) {
 				for(int i = 0; i < buffer_ptr; i += 8) {
@@ -631,30 +677,33 @@ void DATAREC::close_file()
 				rec_fio->Fwrite(buffer, buffer_ptr + 1, 1);
 			}
 		}
-		*/
 		rec_fio->Fclose();
 	}
-	if(casData != NULL) {
-		free(casData);
-		casData = NULL;
-	}
+	//if(buffer != NULL) {
+	//	free(buffer);
+	//	buffer = NULL;
+	//}
+	//if(buffer_bak != NULL) {
+	//	free(buffer_bak);
+	//	buffer_bak = NULL;
+	//}
 #ifdef DATAREC_SOUND
 	if(sound_buffer != NULL) {
 		free(sound_buffer);
 		sound_buffer = NULL;
 	}
 #endif
-	if(apss_buffer != NULL) {
-		free(apss_buffer);
-		apss_buffer = NULL;
-	}
+	//if(apss_buffer != NULL) {
+	//	free(apss_buffer);
+	//	apss_buffer = NULL;
+	//}
 }
 
 // standard PCM wave file
 
 void adjust_zero_position(int16_t *wav_buffer, int samples, int sample_rate)
 {
-	int16_t *zero_buffer = (int16_t *)ps_malloc(samples * sizeof(int16_t));
+	int16_t *zero_buffer = (int16_t *)malloc(samples * sizeof(int16_t));
 	int width = (int)((double)sample_rate / 1000.0 + 0.5);
 	
 	for(int i = width; i < samples - width; i++) {
@@ -677,8 +726,6 @@ void adjust_zero_position(int16_t *wav_buffer, int samples, int sample_rate)
 
 int DATAREC::load_wav_image(int offset)
 {
-	/*
-	Serial.println("load_wav_image");
 	// check wave header
 	wav_header_t header;
 	wav_chunk_t chunk;
@@ -708,7 +755,7 @@ int DATAREC::load_wav_image(int offset)
 	if(samples > 0) {
 		#define TMP_LENGTH (0x10000 * header.channels)
 		
-		uint8_t *tmp_buffer = (uint8_t *)ps_malloc(TMP_LENGTH);
+		uint8_t *tmp_buffer = (uint8_t *)malloc(TMP_LENGTH);
 		play_fio->Fread(tmp_buffer, TMP_LENGTH, 1);
 		
 		#define GET_SAMPLE { \
@@ -745,7 +792,7 @@ int DATAREC::load_wav_image(int offset)
 				sound_buffer = (int16_t *)malloc(sound_buffer_length);
 			}
 #endif
-			int16_t *wav_buffer = (int16_t *)ps_malloc(samples * sizeof(int16_t));
+			int16_t *wav_buffer = (int16_t *)malloc(samples * sizeof(int16_t));
 			for(int i = 0, tmp_ptr = 0; i < samples; i++) {
 				int16_t sample[16];
 				GET_SAMPLE
@@ -765,7 +812,7 @@ int DATAREC::load_wav_image(int offset)
 			adjust_zero_position(wav_buffer, samples, header.sample_rate);
 			
 			// copy to dest buffer
-			buffer = (uint8_t *)ps_malloc(samples);
+			buffer = (uint8_t *)malloc(samples);
 			bool prev_signal = false;
 			int top_index = 0;
 			int16_t max_sample = 0, min_sample = 0;
@@ -821,7 +868,7 @@ int DATAREC::load_wav_image(int offset)
 			loaded_samples = samples;
 		} else {
 			// load samples
-			int16_t *wav_buffer = (int16_t *)ps_malloc(samples * sizeof(int16_t));
+			int16_t *wav_buffer = (int16_t *)malloc(samples * sizeof(int16_t));
 			for(int i = 0, tmp_ptr = 0; i < samples; i++) {
 				int16_t sample[16];
 				GET_SAMPLE
@@ -929,7 +976,7 @@ int DATAREC::load_wav_image(int offset)
 					}
 				}
 				if(t == 1) {
-					buffer = (uint8_t *)ps_malloc(loaded_samples);
+					buffer = (uint8_t *)malloc(loaded_samples);
 #ifdef DATAREC_SOUND
 					if(header.channels > 1) {
 						sound_buffer_length = loaded_samples * sizeof(int16_t);
@@ -945,13 +992,10 @@ int DATAREC::load_wav_image(int offset)
 		free(tmp_buffer);
 	}
 	return loaded_samples;
-	*/
-	return NULL;
 }
 
 void DATAREC::save_wav_image()
 {
-	/*
 	// write samples remained in buffer
 	if(buffer_ptr > 0) {
 		rec_fio->Fwrite(buffer, buffer_ptr, 1);
@@ -979,7 +1023,6 @@ void DATAREC::save_wav_image()
 	rec_fio->Fseek(0, FILEIO_SEEK_SET);
 	rec_fio->Fwrite(&wav_header, sizeof(wav_header), 1);
 	rec_fio->Fwrite(&wav_chunk, sizeof(wav_chunk), 1);
-	*/
 }
 
 // FUJITSU FM-7 series tape image
@@ -996,7 +1039,6 @@ void DATAREC::save_wav_image()
 	} \
 }
 
-/*
 int DATAREC::load_t77_image()
 {
 	sample_usec = 9;
@@ -1049,10 +1091,10 @@ int DATAREC::load_t77_image()
 	24H   :  4  : テープの位置（ビット単位）
 	28H   :  ?  : テープのデータ
 */
-/*
+
 int DATAREC::load_tap_image()
 {
-	Serial.println("load X1 tap image");
+#if defined(USE_TAP)
 	// get file size
 	play_fio->Fseek(0, FILEIO_SEEK_END);
 	int file_size = play_fio->Ftell();
@@ -1062,6 +1104,8 @@ int DATAREC::load_tap_image()
 	uint8_t header[4];
 	play_fio->Fread(header, 4, 1);
 	
+	int dataLength = 0;
+	int playPosition = 0;
 	if(header[0] == 'T' && header[1] == 'A' && header[2] == 'P' && header[3] == 'E') {
 		// skip name, reserved, write protect notch
 		play_fio->Fseek(17 + 5 + 1, FILEIO_SEEK_CUR);
@@ -1072,29 +1116,37 @@ int DATAREC::load_tap_image()
 		}
 		// sample rate
 		play_fio->Fread(header, 4, 1);
-		sample_rate = header[0] | (header[1] << 8) | (header[2] << 16) | (header[3] << 24);
+		sample_rate = (header[0] | (header[1] << 8) | (header[2] << 16) | (header[3] << 24)) * 4; //CPUを4倍速（#define CPU_CLOCKS (4000000 * 4)）にしてあるのでそれに合わせる
 		sample_usec = 1000000. / sample_rate;
 		// data length
 		play_fio->Fread(header, 4, 1);
+		dataLength =  header[0] | (header[1] << 8) | (header[2] << 16) | (header[3] << 24);
 		// play position
+		playPosition = header[0] | (header[1] << 8) | (header[2] << 16) | (header[3] << 24);
 		play_fio->Fread(header, 4, 1);
 	} else {
 		// sample rate
 		sample_rate = header[0] | (header[1] << 8) | (header[2] << 16) | (header[3] << 24);
 		sample_usec = 1000000. / sample_rate;
 	}
-	
-	// load samples
-	int ptr = 0, data;
-	while((data = play_fio->Fgetc()) != EOF) {
-		for(int i = 0, bit = 0x80; i < 8; i++, bit >>= 1) {
-			if(buffer != NULL) {
-				buffer[ptr] = ((data & bit) != 0) ? 255 : 0;
-			}
-			ptr++;
-		}
-	}
-	return ptr;
+	Serial.printf("sample_rate:%d,dataLength:%d, playPosition:%d",sample_rate,dataLength,playPosition);
+	tapFile->initialize(play_fio);
+	tapeType = TAPE_TYPE_TAP;
+	return tapFile->getTapeSize();
+	// // load samples
+	// int ptr = 0, data;
+	// while((data = play_fio->Fgetc()) != EOF) {
+	// 	for(int i = 0, bit = 0x80; i < 8; i++, bit >>= 1) {
+	// 		if(buffer != NULL) {
+	// 			buffer[ptr] = ((data & bit) != 0) ? 255 : 0;
+	// 		}
+	// 		ptr++;
+	// 	}
+	// }
+	// return ptr;
+#else
+	return 0;
+#endif
 }
 
 // SHARP MZ series tape image
@@ -1172,92 +1224,128 @@ int DATAREC::load_tap_image()
 	MZT_PUT_BYTE(lo); \
 }
 
-int DATAREC::load_mzt_image()
-{
+// int DATAREC::load_mzt_image()
+// {
+// 	sample_rate = 48000;
+// 	sample_usec = 1000000. / sample_rate;
+	
+// 	// get file size
+// 	play_fio->Fseek(0, FILEIO_SEEK_END);
+// 	int file_size = play_fio->Ftell();
+// 	play_fio->Fseek(0, FILEIO_SEEK_SET);
+	
+// 	// load mzt file
+// 	int ptr = 0;
+// 	while(file_size > 128) {
+// 		// load header
+// 		//uint8_t header[128], ram[0x20000];
+// 		uint8_t* header = (uint8_t*)ps_malloc(128);
+// 		uint8_t* ram = (uint8_t*)ps_malloc(0x20000);
+// 		play_fio->Fread(header, sizeof(header), 1);
+// 		file_size -= sizeof(header);
+		
+// 		uint16_t size = header[0x12] | (header[0x13] << 8);
+// 		uint16_t offs = header[0x14] | (header[0x15] << 8);
+// 		memset(ram, 0, sizeof(ram));
+// 		play_fio->Fread(ram + offs, size, 1);
+// 		file_size -= size;
+// //#if defined(_MZ80K) || defined(_MZ700) || defined(_MZ1200) || defined(_MZ1500)
+// #if 0
+// 		// apply mz700win patch
+// 		if(header[0x40] == 'P' && header[0x41] == 'A' && header[0x42] == 'T' && header[0x43] == ':') {
+// 			int patch_ofs = 0x44;
+// 			for(; patch_ofs < 0x80; ) {
+// 				uint16_t patch_addr = header[patch_ofs] | (header[patch_ofs + 1] << 8);
+// 				patch_ofs += 2;
+// 				if(patch_addr == 0xffff) {
+// 					break;
+// 				}
+// 				int patch_len = header[patch_ofs++];
+// 				for(int i = 0; i < patch_len; i++) {
+// 					ram[patch_addr + i] = header[patch_ofs++];
+// 				}
+// 			}
+// 			for(int i = 0x40; i < patch_ofs; i++) {
+// 				header[i] = 0;
+// 			}
+// 		}
+// #endif
+// 		// output to buffer
+// 		MZT_PUT_SIGNAL(0, sample_rate);
+// #if defined(_MZ80B) || defined(_MZ2000) || defined(_MZ2200)
+// 		// Bin2Wav Ver 0.03
+// 		MZT_PUT_BIT(0, 22000);
+// 		MZT_PUT_BIT(1, 40);
+// 		MZT_PUT_BIT(0, 41);
+// 		MZT_PUT_BLOCK(header, 128);
+// 		MZT_PUT_BIT(1, 1);
+// 		MZT_PUT_SIGNAL(1, (int)(22.0 * sample_rate / 22050.0 + 0.5));
+// 		MZT_PUT_SIGNAL(0, (int)(22.0 * sample_rate / 22050.0 + 0.5));
+// 		MZT_PUT_SIGNAL(0, sample_rate);
+// 		MZT_PUT_BIT(0, 11000);
+// 		MZT_PUT_BIT(1, 20);
+// 		MZT_PUT_BIT(0, 21);
+// 		MZT_PUT_BLOCK(ram + offs, size);
+// 		MZT_PUT_BIT(1, 1);
+// #else
+// 		// format info written in 試験に出るX1
+// 		MZT_PUT_BIT(0, 10000);
+// 		MZT_PUT_BIT(1, 40);
+// 		MZT_PUT_BIT(0, 40);
+// 		MZT_PUT_BIT(1, 1);
+// 		MZT_PUT_BLOCK(header, 128);
+// 		MZT_PUT_BIT(1, 1);
+// 		MZT_PUT_BIT(0, 256);
+// 		MZT_PUT_BLOCK(header, 128);
+// 		MZT_PUT_BIT(1, 1);
+// 		MZT_PUT_SIGNAL(0, sample_rate);
+// 		MZT_PUT_BIT(0, 10000);
+// 		MZT_PUT_BIT(1, 20);
+// 		MZT_PUT_BIT(0, 20);
+// 		MZT_PUT_BIT(1, 1);
+// 		MZT_PUT_BLOCK(ram + offs, size);
+// 		MZT_PUT_BIT(1, 1);
+// #endif
+// 		free(header);
+// 		free(ram);
+// 	}
+// 	return ptr;
+// }
+
+
+int DATAREC::load_mzt_image(){
+#if defined(USE_MZT)
 	sample_rate = 48000;
 	sample_usec = 1000000. / sample_rate;
-	
-	// get file size
-	play_fio->Fseek(0, FILEIO_SEEK_END);
-	int file_size = play_fio->Ftell();
-	play_fio->Fseek(0, FILEIO_SEEK_SET);
-	
-	// load mzt file
-	int ptr = 0;
-	while(file_size > 128) {
-		// load header
-		//uint8_t header[128], ram[0x20000];
-		uint8_t* header = (uint8_t*)ps_malloc(128);
-		uint8_t* ram = (uint8_t*)ps_malloc(0x20000);
-		play_fio->Fread(header, sizeof(header), 1);
-		file_size -= sizeof(header);
-		
-		uint16_t size = header[0x12] | (header[0x13] << 8);
-		uint16_t offs = header[0x14] | (header[0x15] << 8);
-		memset(ram, 0, sizeof(ram));
-		play_fio->Fread(ram + offs, size, 1);
-		file_size -= size;
-//#if defined(_MZ80K) || defined(_MZ700) || defined(_MZ1200) || defined(_MZ1500)
-#if 0
-		// apply mz700win patch
-		if(header[0x40] == 'P' && header[0x41] == 'A' && header[0x42] == 'T' && header[0x43] == ':') {
-			int patch_ofs = 0x44;
-			for(; patch_ofs < 0x80; ) {
-				uint16_t patch_addr = header[patch_ofs] | (header[patch_ofs + 1] << 8);
-				patch_ofs += 2;
-				if(patch_addr == 0xffff) {
-					break;
-				}
-				int patch_len = header[patch_ofs++];
-				for(int i = 0; i < patch_len; i++) {
-					ram[patch_addr + i] = header[patch_ofs++];
-				}
-			}
-			for(int i = 0x40; i < patch_ofs; i++) {
-				header[i] = 0;
-			}
-		}
-#endif
-		// output to buffer
-		MZT_PUT_SIGNAL(0, sample_rate);
-#if defined(_MZ80B) || defined(_MZ2000) || defined(_MZ2200)
-		// Bin2Wav Ver 0.03
-		MZT_PUT_BIT(0, 22000);
-		MZT_PUT_BIT(1, 40);
-		MZT_PUT_BIT(0, 41);
-		MZT_PUT_BLOCK(header, 128);
-		MZT_PUT_BIT(1, 1);
-		MZT_PUT_SIGNAL(1, (int)(22.0 * sample_rate / 22050.0 + 0.5));
-		MZT_PUT_SIGNAL(0, (int)(22.0 * sample_rate / 22050.0 + 0.5));
-		MZT_PUT_SIGNAL(0, sample_rate);
-		MZT_PUT_BIT(0, 11000);
-		MZT_PUT_BIT(1, 20);
-		MZT_PUT_BIT(0, 21);
-		MZT_PUT_BLOCK(ram + offs, size);
-		MZT_PUT_BIT(1, 1);
+
+	mztFile->initialize(play_fio);
+	tapeType = TAPE_TYPE_MZT;
+	return mztFile->getTapeSize();
 #else
-		// format info written in �����ɏo��X1
-		MZT_PUT_BIT(0, 10000);
-		MZT_PUT_BIT(1, 40);
-		MZT_PUT_BIT(0, 40);
-		MZT_PUT_BIT(1, 1);
-		MZT_PUT_BLOCK(header, 128);
-		MZT_PUT_BIT(1, 1);
-		MZT_PUT_BIT(0, 256);
-		MZT_PUT_BLOCK(header, 128);
-		MZT_PUT_BIT(1, 1);
-		MZT_PUT_SIGNAL(0, sample_rate);
-		MZT_PUT_BIT(0, 10000);
-		MZT_PUT_BIT(1, 20);
-		MZT_PUT_BIT(0, 20);
-		MZT_PUT_BIT(1, 1);
-		MZT_PUT_BLOCK(ram + offs, size);
-		MZT_PUT_BIT(1, 1);
+	return 0;
 #endif
-		free(header);
-		free(ram);
+}
+
+int8_t DATAREC::nextBuffer(){
+
+	if(tapeType != TAPE_TYPE_EMPTY){
+		switch (tapeType){
+#if defined(USE_MZT)
+			case TAPE_TYPE_MZT:{
+				return mztFile->nextBuffer();
+			}
+#endif
+#if defined(USE_TAP)
+			case TAPE_TYPE_TAP:{
+				return tapFile->nextBuffer();
+			}
+#endif
+
+
+			default:return 0;
+		}
 	}
-	return ptr;
+	return 0;
 }
 
 // NEC PC-6001/6601 series tape image
@@ -1433,54 +1521,40 @@ int DATAREC::load_bmjr_image()
 }
 
 // standard cas image for my emulator
-*/
-static const uint8_t msx_cas_header[8] = {0x1f, 0xa6, 0xde, 0xba, 0xcc, 0x13, 0x7d, 0x74};
 
-#define CAS_PERIOD		(16)
-#define CAS_HEADER_PERIODS	(4000)
-#define CAS_EMPTY_PERIODS	(1000)
+static const uint8_t msx_cas_header[8] = {0x1f, 0xa6, 0xde, 0xba, 0xcc, 0x13, 0x7d, 0x74};
 
 int DATAREC::load_cas_image()
 {
-	Serial.println("Load CAS Image");
 	sample_rate = 48000;
 	sample_usec = 1000000. / sample_rate;
 	
 	// SORD m5 or NEC PC-6001 series cas image ?
-	//static const uint8_t momomomomomo[6] = {0xd3, 0xd3, 0xd3, 0xd3, 0xd3, 0xd3};
+	static const uint8_t momomomomomo[6] = {0xd3, 0xd3, 0xd3, 0xd3, 0xd3, 0xd3};
 	uint8_t tmp_header[8];
 	play_fio->Fseek(0, FILEIO_SEEK_SET);
 	play_fio->Fread(tmp_header, sizeof(tmp_header), 1);
 	
-	//if(memcmp(tmp_header, "SORDM5", 6) == 0) {
-	//	return load_m5_cas_image();
-	//} else if(memcmp(tmp_header, msx_cas_header, 8) == 0) {
-	//	return load_msx_cas_image();
-	//} else if(memcmp(tmp_header, momomomomomo, 6) == 0) {
-	//	return load_p6_image(false);
-	//}
+	if(memcmp(tmp_header, "SORDM5", 6) == 0) {
+		return load_m5_cas_image();
+	} else if(memcmp(tmp_header, msx_cas_header, 8) == 0) {
+		return load_msx_cas_image();
+	} else if(memcmp(tmp_header, momomomomomo, 6) == 0) {
+		return load_p6_image(false);
+	}
 	
 	// this is the standard cas image for my emulator
-
-	int fileLength = play_fio->FileLength();
-	casData = (uint8_t*)ps_malloc(fileLength);
-	casDataLength = fileLength;
 	play_fio->Fseek(0, FILEIO_SEEK_SET);
-	play_fio->Fread(casData, fileLength, 1);
-
-	buffer_length = calcBufferLength();
-	Serial.printf("fileLength:%d bufferLength:%d\n",fileLength,buffer_length);
-	//play_fio->Fseek(0, FILEIO_SEEK_SET);
-	//int ptr = 0, data;
-	//while((data = play_fio->Fgetc()) != EOF) {
-	//	for(int i = 0; i < (data & 0x7f); i++) {
-	//		if(buffer != NULL) {
-	//			buffer[ptr] = (data & 0x80) ? 255 : 0;
-	//		}
-	//		ptr++;
-	//	}
-	//}
-	return fileLength;
+	int ptr = 0, data;
+	while((data = play_fio->Fgetc()) != EOF) {
+		for(int i = 0; i < (data & 0x7f); i++) {
+			if(buffer != NULL) {
+				buffer[ptr] = (data & 0x80) ? 255 : 0;
+			}
+			ptr++;
+		}
+	}
+	return ptr;
 }
 
 // SORD M5 tape image
@@ -1511,7 +1585,6 @@ int DATAREC::load_cas_image()
 
 int DATAREC::load_m5_cas_image()
 {
-	/*
 	play_fio->Fseek(16, FILEIO_SEEK_SET);
 	int ptr = 0, block_type;
 	
@@ -1540,59 +1613,54 @@ int DATAREC::load_m5_cas_image()
 	}
 	M5_PUT_BIT(0x00, 1);
 	return ptr;
-	*/
-	return 0;
 }
 
 // ASCII MSX tape image (fMSX)
 // MAME/MESS /src/lib/formats/fmsx_cas.c by Mr.Sean Young
 
+#define CAS_PERIOD		(16)
+#define CAS_HEADER_PERIODS	(4000)
+#define CAS_EMPTY_PERIODS	(1000)
+
 int DATAREC::load_msx_cas_image()
 {
-	/*
-	Serial.println("Load MSX CAS Image");
 	sample_rate = 22050;
 	sample_usec = 1000000. / sample_rate;
 	
 	play_fio->Fseek(0, FILEIO_SEEK_END);
 	int cas_size = play_fio->Ftell();
-	Serial.printf("Cas size: %d\n", cas_size);
-	uint8_t *bytes = (uint8_t *)ps_malloc(cas_size);
+	uint8_t *bytes = (uint8_t *)malloc(cas_size);
 	play_fio->Fseek(0, FILEIO_SEEK_SET);
 	play_fio->Fread(bytes, cas_size, 1);
-	Serial.println("Fread OK");
+	
 	int cas_pos, bit, state = 1, samples_pos, size, n, i, p;
 	
 	cas_pos = 0;
 	samples_pos = 0;
-	Serial.println("Load MSX CAS Image 2");
-	while(/*samples_pos < sample_count && *//*cas_pos < cas_size) {
+	
+	while(/*samples_pos < sample_count && */cas_pos < cas_size) {
 		/* Check if we need to output a header */
-	/*
 		if(cas_pos + 8 < cas_size) {
 			if(!memcmp( bytes + cas_pos, msx_cas_header, 8)) {
 				/* Write CAS_EMPTY_PERIODS of silence */
-	/*			n = CAS_EMPTY_PERIODS * CAS_PERIOD;
+				n = CAS_EMPTY_PERIODS * CAS_PERIOD;
 				while(n--) {
 					if(buffer != NULL) {
 						buffer[samples_pos] = 0;
 					}
 					samples_pos++;
-					//Serial.printf("samples Pos 1:%d \n", samples_pos);
 				}
 				/* Write CAS_HEADER_PERIODS of header (high frequency) */
-	/*			for(i = 0; i < CAS_HEADER_PERIODS * 4 ; i++) {
+				for(i = 0; i < CAS_HEADER_PERIODS * 4 ; i++) {
 					for(n = 0; n < CAS_PERIOD / 4; n++) {
 						if(buffer != NULL) {
 							buffer[samples_pos + n] = (state ? 0xff : 0);
 						}
 					}
 					samples_pos += CAS_PERIOD / 4 ;
-					//Serial.printf("samples Pos 2:%d \n", samples_pos);
 					state = !state;
 				}
 				cas_pos += 8;
-				//Serial.printf("Cas Pos :%d \n", cas_pos);
 			}
 		}
 		
@@ -1606,7 +1674,6 @@ int DATAREC::load_msx_cas_image()
 			}
 			
 			/* write this one bit */
-	/*
 			for(n = 0; n < (bit ? 4 : 2); n++) {
 				size = (bit ? CAS_PERIOD / 4 : CAS_PERIOD / 2);
 				for(p = 0; p < size; p++) {
@@ -1616,20 +1683,12 @@ int DATAREC::load_msx_cas_image()
 				}
 				state = !state;
 				samples_pos += size;
-				//Serial.printf("i:%d ,n: %d ,p:%d Cas sample_pos 3 :%d \n", i, n, p, samples_pos);
 			}
 		}
 		cas_pos++;
-		Serial.printf("Cas Pos 4 cas_pos:%d, cas_size:%d \n", cas_pos, cas_size);
 	}
-	Serial.println("Load MSX CAS Image 3");
-	if(bytes != NULL){
-		free(bytes);
-	}
-	Serial.println("Load MSX CAS Image 4");
+	free(bytes);
 	return samples_pos;
-	*/
-	return 0;
 }
 
 void DATAREC::mix(int32_t* buffer, int cnt)
@@ -1716,7 +1775,7 @@ void DATAREC::set_volume(int ch, int decibel_l, int decibel_r)
 #endif
 	}
 }
-/*
+
 double DATAREC::get_ave_hi_freq()
 {
 	if(ave_hi_freq == 0 && play && is_wav) {
@@ -1755,10 +1814,9 @@ double DATAREC::get_ave_hi_freq()
 	}
 	return ave_hi_freq;
 }
-*/
+
 void DATAREC::update_config()
 {
-	/*
 	if(d_noise_play != NULL) {
 		d_noise_play->set_mute(!config.sound_noise_cmt);
 	}
@@ -1768,16 +1826,13 @@ void DATAREC::update_config()
 	if(d_noise_fast != NULL) {
 		d_noise_fast->set_mute(!config.sound_noise_cmt);
 	}
-	*/
 	update_realtime_render();
-	
 }
 
 #define STATE_VERSION	8
 
 bool DATAREC::process_state(FILEIO* state_fio, bool loading)
 {
-/*
 	int length_tmp;
 	
 	if(!state_fio->StateCheckUint32(STATE_VERSION)) {
@@ -1839,11 +1894,11 @@ bool DATAREC::process_state(FILEIO* state_fio, bool loading)
 	state_fio->StateValue(buffer_ptr);
 	if(loading) {
 		if((buffer_length = state_fio->FgetInt32_LE()) != 0) {
-			buffer = (uint8_t *)ps_malloc(buffer_length);
+			buffer = (uint8_t *)malloc(buffer_length);
 			state_fio->Fread(buffer, buffer_length, 1);
 		}
 		if((length_tmp = state_fio->FgetInt32_LE()) != 0) {
-			buffer_bak = (uint8_t *)ps_malloc(length_tmp);
+			buffer_bak = (uint8_t *)malloc(length_tmp);
 			state_fio->Fread(buffer_bak, length_tmp, 1);
 		}
 #ifdef DATAREC_SOUND
@@ -1882,7 +1937,7 @@ bool DATAREC::process_state(FILEIO* state_fio, bool loading)
 	state_fio->StateValue(is_t77);
 	if(loading) {
 		if((apss_buffer_length = state_fio->FgetInt32_LE()) != 0) {
-			apss_buffer = (bool *)ps_malloc(apss_buffer_length);
+			apss_buffer = (bool *)malloc(apss_buffer_length);
 			state_fio->Fread(apss_buffer, apss_buffer_length, 1);
 		}
 	} else {
@@ -1909,124 +1964,72 @@ bool DATAREC::process_state(FILEIO* state_fio, bool loading)
 		sound_last_vol_l = sound_last_vol_r = 0;
 #endif
 	}
-	*/
 	return true;
 }
 
-int DATAREC::getBuffer(int buffer_ptr){
-
-	int cas_pos, bit, state = 1, samples_pos,size, n, i, p;
-	cas_pos = 0;
-	samples_pos = 0;
-
-	while(cas_pos < casDataLength){
-		/*
-		if(cas_pos + 8 < casDataLength){
-			if(memcmp(casData + cas_pos, msx_cas_header, 8)==0){
-				//Serial.println("***** MSX HEADER ******");
-				n = CAS_EMPTY_PERIODS * CAS_PERIOD;
-				while(n--){
-					if(samples_pos >= buffer_ptr){
-						if(cas_pos!=preCasPos){
-							Serial.println("***** MSX HEADER ******");
-							Serial.printf("samples_pos:%d buffer_ptr:%d, data:0\n", samples_pos,buffer_ptr);
-							preCasPos = cas_pos;
-						}
-						return 0;
-					}
-					samples_pos++;
-				}
-				for(i = 0;i < CAS_HEADER_PERIODS * 4;i++){
-					for(n = 0; n < CAS_PERIOD / 4 ; n++){
-						if(samples_pos + n >= buffer_ptr){
-							if(cas_pos!=preCasPos){
-								Serial.println("***** MSX HEADER ******");
-								Serial.printf("sample_pos+n:%d buffer_ptr:%d, data:%d\n", samples_pos + n,buffer_ptr, state ? 0xff: 0);
-								preCasPos = cas_pos;
-							}
-							return state ? 0xff: 0;
-						}
-					}
-					samples_pos += CAS_PERIOD / 4;
-					state = !state;
-				}
-				cas_pos += 8;
-			}
+int DATAREC::get_tape_percent()
+{
+	/*
+	if(play && buffer_length > 0) {
+		if(buffer_ptr >= buffer_length) {
+			return 100;
+		} else if(buffer_ptr <= 0) {
+			return 0;
+		} else {
+			return (int)(((double)buffer_ptr / (double)buffer_length) * 100.0);
 		}
-		*/
-		for(i = 0; i <= 11; i++){
-			if(i == 0){
-				bit = 0;
-			}else if(i < 9){
-				bit = (casData[cas_pos] & (1 << (i-1)));
-			}else{
-				bit = 1;
-			}
-
-			/* write this one bit */
-			for(n = 0;n < (bit ? 4:2);n++){
-				size = (bit ? CAS_PERIOD / 4 : CAS_PERIOD / 2);
-				for(p = 0; p < size; p++){
-					if(samples_pos + p >= buffer_ptr){
-						if(cas_pos!=preCasPos){
-							//Serial.printf("samples_pos:%d  p:%d  buffer_ptr:%d, data:%d cas_pos:%d cas_data:%X\n", samples_pos, p, buffer_ptr, (state ? 0xff : 0), cas_pos,casData[cas_pos]);
-							preCasPos = cas_pos;
-						}
-						return (state ? 0xff : 0);
-					}
-				}
-				state = !state;
-				samples_pos += size;
-			}
-		}
-		cas_pos++;
 	}
-	Serial.println("END TAPE");
+	*/
+	if(play && tapeType != TAPE_TYPE_EMPTY){
+		switch (tapeType){
+#if defined(USE_MZT)
+			case TAPE_TYPE_MZT:{
+				return mztFile->getTapePercent();
+			}
+#endif
+#if defined(USE_TAP)
+			case TAPE_TYPE_TAP:{
+				return tapFile->getTapePercent();
+			}
+#endif
+		}
+	}
 	return 0;
 }
 
-int DATAREC::calcBufferLength(){
-	//ベタカセットデータをバッファにした時の長さを計算する。
-	int cas_pos, bit, state = 1, samples_pos,size, n, i, p;
-	cas_pos = 0;
-	samples_pos = 0;
-	headerBufferLength = 0;
-	preCasPos = 0;
-	while(cas_pos < casDataLength){
-		/*if(cas_pos + 8 < casDataLength){
-			if(!memcmp(casData + cas_pos, msx_cas_header, 8)){//
-				Serial.printf("Header detect!casPos:%d\n" ,cas_pos);
-				n = CAS_EMPTY_PERIODS * CAS_PERIOD;
-				while(n--){
-					samples_pos++;
-				}
-				Serial.printf("Empty area:%d\n" ,samples_pos);
-				for(i = 0;i < CAS_HEADER_PERIODS * 4;i++){
-					samples_pos += CAS_PERIOD / 4;
-				}
-				cas_pos += 8;
-				headerBufferLength = samples_pos;
-				Serial.printf("Header area:%d\n" ,samples_pos);
+int DATAREC::get_tape_position()
+{
+	if(play && tapeType != TAPE_TYPE_EMPTY){
+		switch (tapeType){
+#if defined(USE_MZT)
+			case TAPE_TYPE_MZT:{
+				return mztFile->getTapePosition();
 			}
+#endif
+#if defined(USE_TAP)
+			case TAPE_TYPE_TAP:{
+				return tapFile->getTapePosition();
+			}
+#endif
 		}
-		*/
-		for(i = 0; i <= 11; i++){
-			if(i == 0){
-				bit = 0;
-			}else if(i < 9){
-				bit = (casData[cas_pos] & (1 << (i-1)));
-			}else{
-				bit = 1;
-			}
-
-			/* write this one bit */
-			for(n = 0;n < (bit ? 4:2);n++){
-				size = (bit ? CAS_PERIOD / 4 : CAS_PERIOD / 2);
-				state = !state;
-				samples_pos += size;
-			}
-		}
-		cas_pos++;
 	}
-	return samples_pos;
+	return 0;
+}
+
+int DATAREC::get_tape_size(){
+	if(tapeType != TAPE_TYPE_EMPTY){
+		switch (tapeType){
+#if defined(USE_MZT)
+			case TAPE_TYPE_MZT:{
+				return mztFile->getTapeSize();
+			}
+#endif
+#if defined(USE_TAP)
+			case TAPE_TYPE_TAP:{
+				return tapFile->getTapeSize();
+			}
+#endif
+		}
+	}
+	return 0;
 }

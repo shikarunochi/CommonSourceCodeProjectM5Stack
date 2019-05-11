@@ -59,6 +59,7 @@ unsigned char PC6031::Getc88(int drvno)
 			}
 		}
 		access[drvno] = true;
+		emu->set_disk_status(drvno, 1);
 		return disk[drvno]->readSector(cur_pos[drvno]++);
 	}
 	return 0xff;
@@ -79,6 +80,7 @@ int PC6031::Putc88(int drvno, unsigned char dat)
 			}
 		}
 		access[drvno] = true;
+		emu->set_disk_status(drvno, 2);
 		disk[drvno]->writeSector(cur_pos[drvno]++,dat);
 		return 1;
 	}

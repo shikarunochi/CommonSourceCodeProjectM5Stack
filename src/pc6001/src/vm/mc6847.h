@@ -35,9 +35,9 @@ private:
 	outputs_t outputs_vsync;
 	outputs_t outputs_hsync;
 	
-	uint8_t *extfont;//[256 * 16];
-	uint8_t *sg4;//[16 * 12];
-	uint8_t *sg6;//[64 * 12];
+	uint8_t extfont[256 * 16];
+	uint8_t sg4[16 * 12];
+	uint8_t sg6[64 * 12];
 	uint8_t *screen;//[192][256];
 	uint8_t *vram_ptr;
 	int vram_size;
@@ -65,6 +65,7 @@ public:
 		d_cpu = NULL;
 		ag = as = intext = css = inv = false;
 		gm = 0;
+		screen = (uint8_t*)ps_malloc(192*256);
 		initialize_output_signals(&outputs_vsync);
 		initialize_output_signals(&outputs_hsync);
 		set_device_name(_T("MC6847 VDC"));

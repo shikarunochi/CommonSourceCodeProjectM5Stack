@@ -21,14 +21,16 @@
 
 int PC6031::Seek88(int drvno, int trackno, int sectno)
 {
+	//Serial.printf("PC6031::Seek88 drv:%d track:%d sect:%d", drvno,trackno,sectno);Serial.println();
 	if(drvno < 2) {
 		if(cur_trk[drvno] != trackno) {
-			if(d_noise_seek != NULL) d_noise_seek->play();
+			//if(d_noise_seek != NULL) d_noise_seek->play();
 		}
 		cur_trk[drvno] = trackno;
 		cur_sct[drvno] = sectno;
 		cur_pos[drvno] = 0;
-		
+		//Serial.printf("PC6031:Seek88:drvNo:%d trackNo:%d sectNo:%d",drvno, trackno, sectno);Serial.println();
+		//Serial.printf("PC6031:trackNo>>1:%d trackNo&1:%d",trackno >> 1, trackno & 1);Serial.println();
 		if(disk[drvno]->get_track(trackno >> 1, trackno & 1)) {
 			for(int i = 0; i < disk[drvno]->sector_num.sd; i++) {
 				if(disk[drvno]->get_sector(trackno >> 1, 0/*trackno & 1*/, i)) {
@@ -44,7 +46,7 @@ int PC6031::Seek88(int drvno, int trackno, int sectno)
 
 unsigned char PC6031::Getc88(int drvno)
 {
-	if(drvno < 2 && disk[drvno]->sector != NULL) {
+	if(drvno < 2 && disk[drvno]->sectorOffset != -1) {
 		if(cur_pos[drvno] >= disk[drvno]->sector_size.sd) {
 			cur_sct[drvno]++;
 			if(!Seek88(drvno, cur_trk[drvno], cur_sct[drvno])) {
@@ -57,14 +59,15 @@ unsigned char PC6031::Getc88(int drvno)
 			}
 		}
 		access[drvno] = true;
-		return disk[drvno]->sector[cur_pos[drvno]++];
+		emu->set_disk_status(drvno, 1);
+		return disk[drvno]->readSector(cur_pos[drvno]++);
 	}
 	return 0xff;
 }
 
 int PC6031::Putc88(int drvno, unsigned char dat)
 {
-	if(drvno < 2 && disk[drvno]->sector != NULL) {
+	if(drvno < 2 && disk[drvno]->sectorOffset != -1) {
 		if(cur_pos[drvno] >= disk[drvno]->sector_size.sd) {
 			cur_sct[drvno]++;
 			if(!Seek88(drvno, cur_trk[drvno], cur_sct[drvno])) {
@@ -77,7 +80,8 @@ int PC6031::Putc88(int drvno, unsigned char dat)
 			}
 		}
 		access[drvno] = true;
-		disk[drvno]->sector[cur_pos[drvno]++] = dat;
+		emu->set_disk_status(drvno, 2);
+		disk[drvno]->writeSector(cur_pos[drvno]++,dat);
 		return 1;
 	}
 	return 0;
@@ -273,20 +277,21 @@ unsigned char PC6031::InD3H_60() { return io_D3H; }
 
 void PC6031::initialize()
 {
+	//for(int i = 0; i < 2; i++) {
 	for(int i = 0; i < 2; i++) {
 		disk[i] = new DISK(emu);
 		disk[i]->set_device_name(_T("%s/Disk #%d"), this_device_name, i + 1);
 		disk[i]->drive_type = DRIVE_TYPE_2D;
 	}
-	if(d_noise_seek != NULL) {
-		d_noise_seek->set_device_name(_T("Noise Player (FDD Seek)"));
-		if(!d_noise_seek->load_wav_file(_T("FDDSEEK.WAV"))) {
-			if(!d_noise_seek->load_wav_file(_T("FDDSEEK1.WAV"))) {
-				d_noise_seek->load_wav_file(_T("SEEK.WAV"));
-			}
-		}
-		d_noise_seek->set_mute(!config.sound_noise_fdd);
-	}
+	//if(d_noise_seek != NULL) {
+	//	d_noise_seek->set_device_name(_T("Noise Player (FDD Seek)"));
+	//	if(!d_noise_seek->load_wav_file(_T("FDDSEEK.WAV"))) {
+	//		if(!d_noise_seek->load_wav_file(_T("FDDSEEK1.WAV"))) {
+	//			d_noise_seek->load_wav_file(_T("SEEK.WAV"));
+	//		}
+	//	}
+	//	d_noise_seek->set_mute(!config.sound_noise_fdd);
+	//}
 //	if(d_noise_head_down != NULL) {
 //		d_noise_head_down->set_device_name(_T("Noise Player (FDD Head Load)"));
 //		d_noise_head_down->load_wav_file(_T("HEADDOWN.WAV"));

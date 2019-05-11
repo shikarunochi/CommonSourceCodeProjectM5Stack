@@ -4,6 +4,9 @@
 	Author : Takeda.Toshiya
 	Date   : 2008.12.29 -
 
+	M5Stack version.
+	modified by shikarunochi 2019.04.18 - 
+
 	[ i/o bus ]
 */
 
@@ -15,8 +18,8 @@ void IO::initialize()
 {
 	// allocate tables here to support multiple instances with different address range
 	if(wr_table == NULL) {
-		wr_table = (wr_bank_t *)calloc(addr_max, sizeof(wr_bank_t));
-		rd_table = (rd_bank_t *)calloc(addr_max, sizeof(rd_bank_t));
+		wr_table = (wr_bank_t *)ps_calloc(addr_max, sizeof(wr_bank_t));
+		rd_table = (rd_bank_t *)ps_calloc(addr_max, sizeof(rd_bank_t));
 		
 		// vm->dummy must be generated first !
 		for(int i = 0; i < addr_max; i++) {
@@ -130,7 +133,6 @@ uint32_t IO::read_dma_io32(uint32_t addr)
 
 void IO::write_port8(uint32_t addr, uint32_t data, bool is_dma)
 {
-	//Serial.printf("writeIO8 %X %X\n",addr, data);
 	uint32_t laddr = addr & IO_ADDR_MASK, haddr = addr & ~IO_ADDR_MASK;
 	uint32_t addr2 = haddr | wr_table[laddr].addr;
 #ifdef _IO_DEBUG_LOG
@@ -144,9 +146,7 @@ void IO::write_port8(uint32_t addr, uint32_t data, bool is_dma)
 	} else if(is_dma) {
 		wr_table[laddr].dev->write_dma_io8(addr2, data & 0xff);
 	} else {
-		//Serial.println(wr_table[laddr].dev->get_device_name());
 		wr_table[laddr].dev->write_io8(addr2, data & 0xff);
-		//Serial.println("WriteIO8:END");
 	}
 }
 

@@ -4,6 +4,9 @@
 	Author : Takeda.Toshiya
 	Date   : 2008.12.29 -
 
+	M5Stack version.
+	modified by shikarunochi 2019.04.18 - 
+
 	[ i/o bus ]
 */
 
@@ -15,8 +18,8 @@ void IO::initialize()
 {
 	// allocate tables here to support multiple instances with different address range
 	if(wr_table == NULL) {
-		wr_table = (wr_bank_t *)calloc(addr_max, sizeof(wr_bank_t));
-		rd_table = (rd_bank_t *)calloc(addr_max, sizeof(rd_bank_t));
+		wr_table = (wr_bank_t *)ps_calloc(addr_max, sizeof(wr_bank_t));
+		rd_table = (rd_bank_t *)ps_calloc(addr_max, sizeof(rd_bank_t));
 		
 		// vm->dummy must be generated first !
 		for(int i = 0; i < addr_max; i++) {
