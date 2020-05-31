@@ -335,7 +335,7 @@ bool OSD::openFile(String file){
 #ifdef USE_TAPE
 #if defined(_MZ700)||defined(_MZ800) ||defined(_MZ1500) ||defined(_MZ1200)
     if(btnBLongPress == true){
-      if(fileName.endsWith(".MZT")){
+      if(fileName.endsWith(".MZT")||fileName.endsWith(".MZF")||fileName.endsWith(".M12")){
         M5.Lcd.println("SET MZT TO MEMORY");
         vm->open_mzt(cFileName);
         openFlag = true;
@@ -347,6 +347,11 @@ bool OSD::openFile(String file){
       ||fileName.endsWith(".P6")
       ||fileName.endsWith(".CAS")
       ||fileName.endsWith(".MZT")
+      ||fileName.endsWith(".MZF")
+      ||fileName.endsWith(".M12")
+      ||fileName.endsWith(".WAV")
+      ||fileName.endsWith(".MTI")
+      ||fileName.endsWith(".MTW")
       ||fileName.endsWith(".TAP"))
       &&openFlag == false
     ){
@@ -379,6 +384,14 @@ bool OSD::openFile(String file){
       openFlag = true;
     }
 #endif
+
+#if defined(_MZ2200) || defined(_MZ2000)
+    if(fileName.endsWith(".DAT")){
+      vm->play_tape(0, cFileName);
+      M5.Lcd.println("SET DAT TO MEMORY");
+      openFlag = true;
+    }
+#endif
     //該当なければCARTに設定
     if(openFlag == false){        
       vm->open_cart(0, cFileName);
@@ -397,6 +410,7 @@ bool OSD::openFile(String file){
 //--------------------------------------------------------------
 #define JOYPAD_INDEX 3
 #define RELOAD_SD_INDEX 2
+#define PCG_INDEX 4
 void OSD::systemMenu()
 {
   static String menuItem[] =
@@ -405,6 +419,9 @@ void OSD::systemMenu()
    "RESET",
    "RELOAD microSD Card",
    "JOYPAD",
+#if defined(_MZ700)
+    "PCG",
+#endif
    ""};
 
   delay(10);
@@ -445,8 +462,16 @@ void OSD::systemMenu()
                 case JOYPAD_MODE1:curItem = curItem + ": NORMAL JOYPAD";break;
                 case JOYPAD_MODE2:curItem = curItem + ": ROTATE JOYPAD";break;
             }
-
         }
+#if defined(_MZ700)
+        if( index == PCG_INDEX){
+          if(config.dipswitch & 1){
+            curItem = curItem + ": ON";
+          }else{
+            curItem = curItem + ": OFF";
+          }
+        }
+#endif
         M5.Lcd.println(curItem);
       }
       //CART/DISK/TAPE の表示
@@ -522,6 +547,11 @@ void OSD::systemMenu()
            joyPadMode = 0;
           }
           break;
+#if defined(_MZ700)
+        case PCG_INDEX:
+          config.dipswitch = config.dipswitch ^ 1;
+          break;
+#endif
         default:
           M5.Lcd.fillScreen(TFT_BLACK);
           delay(10);

@@ -79,6 +79,7 @@
 #endif
 
 #define USE_MZT
+#define USE_WAV
 
 #include "../../common.h"
 #include "../../fileio.h"

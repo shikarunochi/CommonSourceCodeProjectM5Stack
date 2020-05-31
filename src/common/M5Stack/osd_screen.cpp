@@ -9,10 +9,14 @@
 
 	[ M5Stack screen ]
 */
+#pragma GCC optimize ("O3")
+
 #include "osd.h"
 
+//#define USE_DMA_DRAW //SDと同時使用無理なので、ちょっと厳しい
+
 #ifdef USE_DMA_DRAW
-#include <Lcd_dma.h> //https://github.com/MhageGH/M5Stack_LCD_DMA
+#include "DMADrawer.h"
 #endif
 
 
@@ -27,7 +31,12 @@ static TFT_eSprite fb = TFT_eSprite(&M5.Lcd);
 #endif
 
 #ifdef USE_DMA_DRAW
-Lcd_dma *lcd_dma;
+DMADrawer _dma;
+TFT_eSPI &Tft = M5.Lcd;
+TFT_eSPI* _tft = &Tft;
+DMA_eSprite _sprites[2];
+static uint16_t tft_width = 320;
+static uint16_t tft_height = 240;
 #endif
 
 void OSD::initialize_screen()
@@ -40,9 +49,16 @@ void OSD::initialize_screen()
     fb.pushSprite(0, 0);
 #endif
 #ifdef USE_DMA_DRAW
-    lcd_dma = new Lcd_dma(320, 40);
-    lcd_dma->SetBrightness(20);
-    lcd_dma->fillScreen(0);
+    setup_t s;
+    _tft->getSetup(s);
+	Serial.println("init dma");
+    _dma.init(s);
+	Serial.println("init dma OK");
+	tft_width = _tft->width();
+    tft_height = _tft->height();
+	//uint16_t h = max(80, (tft_height + 2) / 3);
+    //_sprites[0].createDMA(tft_width, h);
+    //_sprites[1].createDMA(tft_width, h);
 #endif
 	//host_window_width = WINDOW_WIDTH;
 	//host_window_height = WINDOW_HEIGHT;
@@ -103,7 +119,7 @@ int OSD::draw_screen()
 #ifdef USE_DRAWBITMAP
 
 #ifdef USE_DMA_DRAW
-	dmaDraw((uint16_t *)lpBmp);
+	dmaDraw(draw_screen_buffer);
 #else
 	M5.Lcd.drawBitmap(screenOffsetX, screenOffsetY, vm_screen_width, vm_screen_height, (uint16_t *)lpBmp);
 #endif
@@ -185,20 +201,14 @@ void OSD::set_disk_status(int drvNo, int status){
 }
 
 #ifdef USE_DMA_DRAW
-void OSD::dmaDraw(uint16_t* lpBmp){
-	 
-	 for(int y = 0; y < SCREEN_HEIGHT;y = y + 40){
-		 uint16_t *framebuffer = lcd_dma->GetFramebuffer();
-		 for(int i = 0;i < 40;i++){
-			 for(int x = 0;x < 320;x++){
-				 if(y < SCREEN_HEIGHT){
-				 	framebuffer[i * 320 + x] = lpBmp[(y + i) * 320 + x];
-				 }else{
-					 framebuffer[i * 320 + x] = 0;
-				 }
-			 }
+void OSD::dmaDraw(bitmap_t *draw_screen_buffer){
+	//Serial.println("draw dma");
+	for(int height = 0;height < vm_screen_height;height = height + 80){
+		int drawHeight = 80;
+		if(height + drawHeight >= vm_screen_height){
+			drawHeight = vm_screen_height - height;
 		}
-		lcd_dma->Flip(0, y + screenOffsetY);
-	 }
+		_dma.draw(screenOffsetX, screenOffsetY + height, vm_screen_width, drawHeight, (uint16_t *)(draw_screen_buffer->get_buffer(height)));
+	}
 }
 #endif

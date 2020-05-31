@@ -26,6 +26,11 @@ class MZTFILE;
 class TAPFILE;
 #endif
 
+#if defined(USE_WAV)
+#include "wavFile.h"
+class WAVFILE;
+#endif
+
 #define SIG_DATAREC_MIC		0
 #define SIG_DATAREC_REMOTE	1
 #define SIG_DATAREC_TRIG	2
@@ -37,7 +42,8 @@ class NOISE;
 enum {
 	TAPE_TYPE_EMPTY = 0,
 	TAPE_TYPE_MZT,
-	TAPE_TYPE_TAP
+	TAPE_TYPE_TAP,
+	TAPE_TYPE_WAV
 };
 
 class DATAREC : public DEVICE
@@ -121,6 +127,9 @@ private:
 #endif	
 #if defined(USE_TAP)
 	 TAPFILE *tapFile;
+#endif
+#if defined(USE_WAV)
+	 WAVFILE *wavFile;
 #endif
 	
 public:

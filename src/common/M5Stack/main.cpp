@@ -98,9 +98,11 @@ int emuMain()
 				next_time = millis();
 			}
 			if(sleep_period == 0){
-				sleep_period = 1;
+				//sleep_period = 1;
+				delayMicroseconds(1);
+			}else{
+				delay(sleep_period);
 			}
-			delay(sleep_period);
 		}
 	}
 	return 0;
