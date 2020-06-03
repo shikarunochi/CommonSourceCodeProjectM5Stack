@@ -1,25 +1,35 @@
 /*
-	TOSHIBA PASOPIA 7 Emulator 'EmuPIA7'
+	TOSHIBA PASOPIA Emulator 'EmuPIA'
 
 	Author : Takeda.Toshiya
-	Date   : 2006.09.20 -
+	Date   : 2006.12.28 -
 
 	M5Stack version.
-	modified by shikarunochi 2020.05.24 -
+	modified by shikarunochi 2020.06.02 -
 
 	[ virtual machine ]
 */
 
-#ifndef _PASOPIA7_H_
-#define _PASOPIA7_H_
+#ifndef _PASOPIA_H_
+#define _PASOPIA_H_
 
 #ifdef _LCD
-#define DEVICE_NAME		"TOSHIBA PASOPIA 7 with LCD"
-#define CONFIG_NAME		"pasopia7lcd"
+#define DEVICE_NAME		"TOSHIBA PASOPIA with LCD"
+#define CONFIG_NAME		"pasopialcd"
 #else
-#define DEVICE_NAME		"TOSHIBA PASOPIA 7"
-#define CONFIG_NAME		"pasopia7"
+#define DEVICE_NAME		"TOSHIBA PASOPIA"
+#define CONFIG_NAME		"pasopia"
 #endif
+
+#define MODE_TBASIC_V1_0	0
+#define MODE_TBASIC_V1_1	1
+#define MODE_OABASIC		2
+#define MODE_OABASIC_NO_DISK	3
+#define MODE_MINI_PASCAL	4
+
+#define DEVICE_RAM_PAC		0
+#define DEVICE_KANJI_ROM	1
+#define DEVICE_JOYSTICK		2
 
 // device informations for virtual machine
 #ifdef _LCD
@@ -38,23 +48,28 @@
 #define SCREEN_WIDTH		320
 #define SCREEN_HEIGHT		128
 #else
+//#define SCREEN_WIDTH		640
+//#define SCREEN_HEIGHT		400
+//#define WINDOW_HEIGHT_ASPECT	480
 #define SCREEN_WIDTH		320
 #define SCREEN_HEIGHT		200
-#define WINDOW_HEIGHT_ASPECT	240
+#define WINDOW_HEIGHT_ASPECT 240
+
 #endif
 #define MAX_DRIVE		4
-#define IO_ADDR_MAX		0x100
 
 // device informations for win32
+#define USE_BOOT_MODE		5
+#define USE_DEVICE_TYPE		3
 #define USE_TAPE		1
 #define USE_FLOPPY_DISK		2
-#define USE_BINARY_FILE		2
+#define USE_BINARY_FILE		1
 //#define USE_AUTO_KEY		5
 //#define USE_AUTO_KEY_RELEASE	6
 //#define USE_AUTO_KEY_NUMPAD
 #define USE_SCREEN_FILTER
 //#define USE_SCANLINE
-//#define USE_SOUND_VOLUME	6
+//#define USE_SOUND_VOLUME	4
 #define USE_JOYSTICK
 //#define USE_DEBUGGER
 //#define USE_STATE
@@ -68,7 +83,7 @@
 
 #ifdef USE_SOUND_VOLUME
 static const _TCHAR *sound_device_caption[] = {
-	_T("PSG #1"), _T("PSG #2"), _T("Beep"), _T("CMT (Signal)"), _T("Noise (FDD)"), _T("Noise (CMT)"),
+	_T("Beep"), _T("CMT (Signal)"), _T("Noise (FDD)"), _T("Noise (CMT)"),
 };
 #endif
 
@@ -83,7 +98,6 @@ class IO;
 class LS393;
 class NOT;
 class PCM1BIT;
-class SN76489AN;
 class UPD765A;
 class Z80;
 class Z80CTC;
@@ -91,8 +105,6 @@ class Z80PIO;
 
 class FLOPPY;
 class DISPLAY_;
-class IOBUS;
-class IOTRAP;
 class KEYBOARD;
 class MEMORY;
 class PAC2;
@@ -114,8 +126,6 @@ protected:
 	LS393* flipflop;
 	NOT* not_remote;
 	PCM1BIT* pcm;
-	SN76489AN* psg0;
-	SN76489AN* psg1;
 	UPD765A* fdc;
 	Z80* cpu;
 	Z80CTC* ctc;
@@ -123,11 +133,11 @@ protected:
 	
 	FLOPPY* floppy;
 	DISPLAY_* display;
-	IOBUS* iobus;
-	IOTRAP* iotrap;
 	KEYBOARD* key;
 	MEMORY* memory;
 	PAC2* pac2;
+	
+	int boot_mode;
 	
 public:
 	// ----------------------------------------

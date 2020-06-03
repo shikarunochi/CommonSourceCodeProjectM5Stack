@@ -110,6 +110,11 @@ platformio run
 copy /y .pio\build\m5stack-fire\firmware.bin ..\..\bin\pasopia7.bin
 cd ..
 
+cd pasopia
+platformio run
+copy /y .pio\build\m5stack-fire\firmware.bin ..\..\bin\pasopia.bin
+cd ..
+
 cd fp1100
 platformio run
 copy /y .pio\build\m5stack-fire\firmware.bin ..\..\bin\fp1100.bin

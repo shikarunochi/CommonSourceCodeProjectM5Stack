@@ -6,8 +6,8 @@
 	Date   : 2006.09.20 -
 
 	M5Stack version.
-	modified by shikarunochi 2020.05.24 -
-
+	modified by shikarunochi 2020.06.02 -
+	
 	[ ram pac 2 (32kbytes) ]
 */
 
@@ -19,7 +19,7 @@ static const uint8_t header[16] = {
 
 void RAMPAC2::initialize(int id)
 {
-	ram = (uint8_t*)ps_malloc(32*1024);
+	ram = (uint8_t *)ps_malloc(32*1024);
 	opened = modified = false;
 	
 	// note: rampac2 id must be 1 or 2 !!!
@@ -28,7 +28,7 @@ void RAMPAC2::initialize(int id)
 	//	open_file(config.recent_binary_path[id - 1][0]);
 	//} else {
 		// open default rampac2 file
-	open_file(create_local_path(_T("RAMPAC%d.BIN"), id));
+		open_file(create_local_path(_T("RAMPAC%d.BIN"), id));
 	//}
 }
 
@@ -37,6 +37,7 @@ void RAMPAC2::release()
 	// save modified data
 	if(opened && modified) {
 		FILEIO* fio = new FILEIO();
+		//if(fio->Fopen(path, FILEIO_WRITE_BINARY)) {
 		if(fio->Fopen(path, FILEIO_READ_WRITE_BINARY)) {
 			fio->Fwrite(ram, 32*1024, 1);
 			fio->Fclose();

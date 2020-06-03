@@ -392,6 +392,14 @@ bool OSD::openFile(String file){
       openFlag = true;
     }
 #endif
+#if defined(USE_BINARY_FILE)
+    if(fileName.endsWith(".BIN")){
+      vm->load_binary(0, cFileName);
+      M5.Lcd.println("SET BINARY IMAGE");
+      openFlag = true;
+    }
+#endif
+
     //該当なければCARTに設定
     if(openFlag == false){        
       vm->open_cart(0, cFileName);

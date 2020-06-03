@@ -23,23 +23,21 @@ void PAC2::initialize()
 	// slot 2 : kanji rom
 	// slot 1 : joystick
 	dummy = new PAC2DEV(vm, emu);
-	//rampac2[0] = new RAMPAC2(vm, emu);
-	//rampac2[1] = new RAMPAC2(vm, emu);
+	rampac2[0] = new RAMPAC2(vm, emu);
+	rampac2[1] = new RAMPAC2(vm, emu);
 	kanji = new KANJIPAC2(vm, emu);
 	joy = new JOYPAC2(vm, emu);
 	
-	//rampac2[0]->initialize(1);
-	//rampac2[1]->initialize(2);
+	rampac2[0]->initialize(1);
+	rampac2[1]->initialize(2);
 	kanji->initialize(3);
 	joy->initialize(4);
 	
 	dev[7] = dummy;
 	dev[6] = dummy;
 	dev[5] = dummy;
-	//dev[4] = rampac2[0];
-	//dev[3] = rampac2[1];
-	dev[4] = dummy;
-	dev[3] = dummy;
+	dev[4] = rampac2[0];
+	dev[3] = rampac2[1];
 	dev[2] = kanji;
 	dev[1] = joy;
 	dev[0] = dummy;
@@ -50,18 +48,18 @@ void PAC2::initialize()
 void PAC2::release()
 {
 	delete dummy;
-	//rampac2[0]->release();
-	//delete rampac2[0];
-	//rampac2[1]->release();
-	//delete rampac2[1];
+	rampac2[0]->release();
+	delete rampac2[0];
+	rampac2[1]->release();
+	delete rampac2[1];
 	delete kanji;
 	delete joy;
 }
 
 void PAC2::reset()
 {
-	//rampac2[0]->reset();
-	//rampac2[1]->reset();
+	rampac2[0]->reset();
+	rampac2[1]->reset();
 	kanji->reset();
 }
 
