@@ -16,11 +16,7 @@
 #include <stdio.h>
 #include "common.h"
 #if defined(_M5Stack)
-#if defined(_M5Core2)
-	#include <M5Core2.h>
-#else
-	#include<M5Stack.h>
-#endif
+#include<M5Stack.h>
 #endif
 
 #define FILEIO_READ_BINARY		1

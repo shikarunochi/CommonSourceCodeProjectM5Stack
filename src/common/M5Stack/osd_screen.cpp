@@ -19,6 +19,15 @@
 #include "DMADrawer.h"
 #endif
 
+#ifdef USE_128X64OLED
+#include <Adafruit_SSD1306.h>
+#include <Adafruit_I2CDevice.h>
+#define OLED_SCREEN_WIDTH 128 // OLED display width, in pixels
+#define OLED_SCREEN_HEIGHT 64 // OLED display height, in pixels
+#define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
+Adafruit_SSD1306 display(OLED_SCREEN_WIDTH, OLED_SCREEN_HEIGHT, &Wire, OLED_RESET);
+int oledRefreshCount = 0;
+#endif
 
 #define REC_VIDEO_SUCCESS	1
 #define REC_VIDEO_FULL		2
@@ -92,6 +101,21 @@ void OSD::initialize_screen()
 	for(int i = 0;i < 4;i++){
 		diskStatus[i] = 0;
 	}
+
+	#ifdef USE_128X64OLED
+  		if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
+    	for(;;); // Don't proceed, loop forever
+	  }
+	  display.clearDisplay();
+  		display.setTextSize(1);             // Normal 1:1 pixel scale
+  		display.setTextColor(SSD1306_WHITE);        // Draw white text
+  		display.setCursor(0,0);             // Start at top-left corner
+  		//display.println(F("Initializing"));
+		display.drawRect(0, 0, 106, OLED_SCREEN_HEIGHT, SSD1306_WHITE);
+		display.drawLine(0, 0, 106, OLED_SCREEN_HEIGHT, SSD1306_WHITE);
+		display.drawLine(0, OLED_SCREEN_HEIGHT, 106, 0, SSD1306_WHITE);
+  		display.display();
+	#endif
 }
 
 void OSD::release_screen()
@@ -124,6 +148,41 @@ int OSD::draw_screen()
 	M5.Lcd.drawBitmap(screenOffsetX, screenOffsetY, vm_screen_width, vm_screen_height, (uint16_t *)lpBmp);
 #endif
 
+#ifdef USE_128X64OLED
+//320x200 を、128x64 に表示する。 縦横 1/3 で表示。
+	oledRefreshCount++;
+	//まずは遅くても表示。
+	if(oledRefreshCount > 2){
+		display.clearDisplay();
+		int displayXWidth = vm_screen_width / 3;
+		int OLED_XOffset = (vm_screen_width - displayXWidth * 3) / 2;
+		for(int y = 0;y < OLED_SCREEN_HEIGHT;y++){
+			
+			for(int x = 0;x < displayXWidth;x++){
+				bool oledPixel = false;
+				//対応する3*3ドットのどこかが0じゃなければ点灯
+				for(int dotY = 0;dotY < 3;dotY++){				
+					for(int dotX = 0;dotX < 3;dotX++){
+						if(*(lpBmp + (x * 3 + dotX) + (y * 3 + dotY ) * vm_screen_width )> 0){
+							oledPixel = true;
+							break;
+						}
+					}
+					if(	oledPixel == true){
+						break;
+					}
+				}	
+				if(	oledPixel == true){
+					display.drawPixel(x + OLED_XOffset, y, SSD1306_WHITE);
+				}
+			}
+		}
+
+		//display.drawBitmap(0, 0, oled_bitmap, OLED_SCREEN_WIDTH, OLED_SCREEN_HEIGHT,SSD1306_WHITE);
+		display.display();
+		oledRefreshCount = 0;
+	}
+#endif
 	
 	if(preScreenMessage.equals(screenMessage)==false){
 		M5.Lcd.fillRect(0, 220, 320,20,TFT_BLACK);

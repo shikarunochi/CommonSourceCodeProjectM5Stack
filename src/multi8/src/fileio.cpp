@@ -27,11 +27,7 @@
 #elif defined(_WIN32)
 	#include <windows.h>
 #elif defined(_M5Stack)
-#if defined(_M5Core2)
-	#include <M5Core2.h>
-#else
 	#include<M5Stack.h>
-#endif
 #endif
 #include "fileio.h"
 
@@ -1021,7 +1017,7 @@ size_t FILEIO::Fwrite(const void* buffer, size_t size, size_t count)
 		return gzfwrite(buffer, size, count, gz);
 	} else
 #endif
-Serial.println("FWRITE:NOT IMPLIMENT!");
+Serial.println("FWRITE:");
 //	if(fp != NULL) {
 //		return fwrite(buffer, size, count, fp);
 //	}

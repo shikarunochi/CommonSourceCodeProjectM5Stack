@@ -25,6 +25,9 @@ EMU* emu;
 //int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmdLine, int iCmdShow)
 int emuMain()
 {
+	M5.Speaker.begin(); 
+	M5.Speaker.mute();
+	
 	config.cpu_power = 1;
 	config.full_speed = true;
 	
@@ -38,6 +41,7 @@ int emuMain()
 	
 	load_config("");
 	
+#if !defined(_M5Core2)	
 	if(digitalRead(BUTTON_C_PIN) == 0) {
     	Serial.println("Alt File Path");
      	M5.Lcd.println("Alt File Path");
@@ -46,7 +50,7 @@ int emuMain()
         M5.Lcd.fillScreen(TFT_BLACK);
 		delay(1000);
   	}
-
+#endif
 	// initialize emulation core
     emu=new EMU();
     

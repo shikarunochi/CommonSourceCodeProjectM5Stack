@@ -65,11 +65,7 @@ extern int emuMain();
 #elif defined(OSD_WIN32)
 #include "win32/osd.h"
 #elif defined(OSD_M5Stack)
-#if defined(_M5Core2)
-	#include <M5Core2.h>
-#else
-	#include<M5Stack.h>
-#endif
+#include<M5Stack.h>
 #include "M5Stack/osd.h"
 #define typeid "unsupport"; //
 
