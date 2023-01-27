@@ -17,7 +17,7 @@
 #include "psub.h"
 #include "timer.h"
 #include "../i8255.h"
-#include "../../M5Stack/osd.h"
+#include "../../M5StackLGFX/osd.h"
 
 #define STICK0_SPACE	0x80
 #define STICK0_LEFT		0x20

@@ -140,7 +140,8 @@
 
 // device informations for virtual machine
 //#define FRAMES_PER_SEC		60
-#define FRAMES_PER_SEC		30
+//#define FRAMES_PER_SEC		30
+#define FRAMES_PER_SEC		10
 #define LINES_PER_FRAME		262
 #define CPU_CLOCKS		3579545 
 #if !defined(_MSX1_VARIANTS)
@@ -204,6 +205,8 @@
 #if defined(MSX_PSG_STEREO)
 #define USE_SOUND_TYPE		2
 #endif
+
+#define USE_STANDARDCAS
 
 #include "../../common.h"
 #include "../../fileio.h"

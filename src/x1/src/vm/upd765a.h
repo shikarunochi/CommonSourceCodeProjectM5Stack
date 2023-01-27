@@ -6,8 +6,8 @@
 	Date   : 2006.09.17-
 
 	M5Stack version.
-	modified by shikarunochi 2019.03.24 - 
-
+	modified by shikarunochi 2019.03.21 -
+	
 	[ uPD765A ]
 */
 

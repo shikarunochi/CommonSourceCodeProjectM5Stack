@@ -90,6 +90,7 @@
 //#define USE_STATE
 
 #define USE_MZT
+#define USE_wAV
 
 #if defined(_MZ700) || defined(_MZ1500)
 static const int vm_auto_key_table_base[][2] = {

@@ -146,7 +146,11 @@
 	#include <sys/param.h>
 #endif
 #if defined(_M5Stack)
+#if defined(_M5Core2)
+	#include <M5Core2.h>
+#else
 	#include<M5Stack.h>
+#endif
 	#define _MAX_PATH 50
 #endif
 #ifndef _MAX_PATH

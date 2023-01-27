@@ -6,7 +6,7 @@
 
 	[ i8251 ]
 */
-
+#pragma GCC optimize("O3")
 #include "i8251.h"
 #include "../fifo.h"
 

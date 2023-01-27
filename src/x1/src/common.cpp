@@ -34,7 +34,11 @@
 #if defined(_M5Core2)
 	#include <M5Core2.h>
 #else
+#if defined(_M5DUMMY)
+	#include"M5StackLGFX/M5Dummy.h"
+#else
 	#include<M5Stack.h>
+#endif
 #endif
 	#include "emu_config.h"
 #else

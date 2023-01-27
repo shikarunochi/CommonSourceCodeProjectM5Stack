@@ -3,6 +3,9 @@
 
 	Author : Takeda.Toshiya
 	Date   : 2006.09.15-
+	
+	M5Stack version.
+	modified by shikarunochi 2019.03.24 - 
 
 	[ AY-3-8910 / AY-3-8912 / AY-3-8913 ]
 */

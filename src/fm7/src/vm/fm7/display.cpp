@@ -3355,12 +3355,12 @@ uint32_t DISPLAY_::read_bios(const _TCHAR *name, uint8_t *ptr, uint32_t size)
 
 void DISPLAY_::initialize()
 {
-	gvram = (uint8_t *)ps_malloc(__FM7_GVRAM_PAG_SIZE);
-	gvram_shadow = (uint8_t *)ps_malloc(__FM7_GVRAM_PAG_SIZE);
+	gvram = (uint8_t *)malloc(__FM7_GVRAM_PAG_SIZE);
+	gvram_shadow = (uint8_t *)malloc(__FM7_GVRAM_PAG_SIZE);
 	
-	console_ram = (uint8_t *)ps_malloc(0x1000);
-	work_ram = (uint8_t *)ps_malloc(0x380);
-	shared_ram = (uint8_t *)ps_malloc(0x80);
+	console_ram = (uint8_t *)malloc(0x1000);
+	work_ram = (uint8_t *)malloc(0x380);
+	shared_ram = (uint8_t *)malloc(0x80);
    
 	subsys_c = (uint8_t *)ps_malloc(0x2800);
 	

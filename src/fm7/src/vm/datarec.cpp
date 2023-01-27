@@ -9,7 +9,7 @@
 
 	[ data recorder ]
 */
-
+#pragma GCC optimize("O3")
 #include "datarec.h"
 #include "event.h"
 #include "noise.h"

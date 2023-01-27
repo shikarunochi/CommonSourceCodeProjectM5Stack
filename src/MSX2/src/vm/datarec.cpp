@@ -35,8 +35,12 @@ void DATAREC::initialize()
 #if defined(USE_TAP)
 	tapFile = new TAPFILE();
 #endif
-
-
+#if defined(USE_WAV)
+	wavFile = new WAVFILE();
+#endif
+#if defined(USE_STANDARDCAS)
+	standardCasFile = new STANDARDCASFILE();
+#endif
 	memset(rec_file_path, sizeof(rec_file_path), 1);
 	play = rec = remote = trigger = false;
 	ff_rew = 0;
@@ -532,6 +536,8 @@ bool DATAREC::play_tape(const _TCHAR* file_path)
 			play_fio->Fread(header, sizeof(header), 1);
 			uint16_t size = header[0x12] | (header[0x13] << 8);
 			// load standard PCM wave file
+			Serial.print("load mtw wav Image from:");
+			Serial.println(sizeof(header) + size);
 			if((buffer_length = load_wav_image(sizeof(header) + size)) != 0) {
 				play = is_wav = true;
 			}
@@ -724,6 +730,48 @@ void adjust_zero_position(int16_t *wav_buffer, int samples, int sample_rate)
 	free(zero_buffer);
 }
 
+int DATAREC::load_wav_image(int offset)
+{
+#if defined(USE_WAV)
+	wav_header_t header;
+	wav_chunk_t chunk;
+
+	play_fio->Fseek(offset, FILEIO_SEEK_SET);
+	play_fio->Fread(&header, sizeof(header), 1);
+	if(header.format_id != 1 || !(header.sample_bits == 8 || header.sample_bits == 16)) {
+		return 0;
+	}
+	play_fio->Fseek(header.fmt_chunk.size - 16, FILEIO_SEEK_CUR);
+	while(1) {
+		play_fio->Fread(&chunk, sizeof(chunk), 1);
+		if(strncmp(chunk.id, "data", 4) == 0) {
+			break;
+		}
+		play_fio->Fseek(chunk.size, FILEIO_SEEK_CUR);
+	}
+	
+	int samples = chunk.size / header.channels, loaded_samples = 0;
+	if(header.sample_bits == 16) {
+		samples /= 2;
+	}
+	sample_rate = header.sample_rate;
+	sample_usec = 1000000. / sample_rate;
+	
+	wavFile->initialize(play_fio);
+	tapeType = TAPE_TYPE_WAV;
+
+	Serial.printf("sample_rate:%d,dataLength:%d\n",sample_rate, wavFile->getTapeSize());
+	Serial.printf("channels:%d  bit:%d\n" ,header.channels, header.sample_bits);
+
+	return wavFile->getTapeSize();
+#else
+    return 0;
+#endif
+
+}
+
+
+/*
 int DATAREC::load_wav_image(int offset)
 {
 	// check wave header
@@ -993,7 +1041,7 @@ int DATAREC::load_wav_image(int offset)
 	}
 	return loaded_samples;
 }
-
+*/
 void DATAREC::save_wav_image()
 {
 	// write samples remained in buffer
@@ -1340,8 +1388,16 @@ int8_t DATAREC::nextBuffer(){
 				return tapFile->nextBuffer();
 			}
 #endif
-
-
+#if defined(USE_WAV)
+			case TAPE_TYPE_WAV:{
+				return wavFile->nextBuffer();
+			}
+#endif
+#if defined(USE_STANDARDCAS)
+			case TAPE_TYPE_STANDARDCAS:{
+				return standardCasFile->nextBuffer();
+			}
+#endif
 			default:return 0;
 		}
 	}
@@ -1542,10 +1598,17 @@ int DATAREC::load_cas_image()
 	} else if(memcmp(tmp_header, momomomomomo, 6) == 0) {
 		return load_p6_image(false);
 	}
-	
+#if defined(USE_STANDARDCAS)	
+	Serial.println("standard cas image file");
 	// this is the standard cas image for my emulator
 	play_fio->Fseek(0, FILEIO_SEEK_SET);
-	int ptr = 0, data;
+	standardCasFile->initialize(play_fio);
+	tapeType = TAPE_TYPE_STANDARDCAS;
+	return standardCasFile->getTapeSize();
+#else
+	return 0;
+#endif
+	/*int ptr = 0, data;
 	while((data = play_fio->Fgetc()) != EOF) {
 		for(int i = 0; i < (data & 0x7f); i++) {
 			if(buffer != NULL) {
@@ -1555,6 +1618,7 @@ int DATAREC::load_cas_image()
 		}
 	}
 	return ptr;
+	*/
 }
 
 // SORD M5 tape image
@@ -1992,6 +2056,16 @@ int DATAREC::get_tape_percent()
 				return tapFile->getTapePercent();
 			}
 #endif
+#if defined(USE_WAV)
+			case TAPE_TYPE_WAV:{
+				return wavFile->getTapePercent();
+			}
+#endif
+#if defined(USE_STANDARDCAS)
+			case TAPE_TYPE_STANDARDCAS:{
+				return standardCasFile->getTapePercent();
+			}
+#endif
 		}
 	}
 	return 0;
@@ -2011,6 +2085,16 @@ int DATAREC::get_tape_position()
 				return tapFile->getTapePosition();
 			}
 #endif
+#if defined(USE_WAV)
+			case TAPE_TYPE_WAV:{
+				return wavFile->getTapePosition();
+			}
+#endif
+#if defined(USE_STANDARDCAS)
+			case TAPE_TYPE_STANDARDCAS:{
+				return standardCasFile->getTapePosition();
+			}
+#endif
 		}
 	}
 	return 0;
@@ -2027,6 +2111,16 @@ int DATAREC::get_tape_size(){
 #if defined(USE_TAP)
 			case TAPE_TYPE_TAP:{
 				return tapFile->getTapeSize();
+			}
+#endif
+#if defined(USE_WAV)
+			case TAPE_TYPE_WAV:{
+				return wavFile->getTapeSize();
+			}
+#endif
+#if defined(USE_STANDARDCAS)
+			case TAPE_TYPE_STANDARDCAS:{
+				return standardCasFile->getTapeSize();
 			}
 #endif
 		}

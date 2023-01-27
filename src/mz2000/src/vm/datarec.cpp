@@ -1598,13 +1598,16 @@ int DATAREC::load_cas_image()
 	} else if(memcmp(tmp_header, momomomomomo, 6) == 0) {
 		return load_p6_image(false);
 	}
-	
+#if defined(USE_STANDARDCAS)	
 	Serial.println("standard cas image file");
 	// this is the standard cas image for my emulator
 	play_fio->Fseek(0, FILEIO_SEEK_SET);
 	standardCasFile->initialize(play_fio);
 	tapeType = TAPE_TYPE_STANDARDCAS;
 	return standardCasFile->getTapeSize();
+#else
+	return 0;
+#endif
 	/*int ptr = 0, data;
 	while((data = play_fio->Fgetc()) != EOF) {
 		for(int i = 0; i < (data & 0x7f); i++) {

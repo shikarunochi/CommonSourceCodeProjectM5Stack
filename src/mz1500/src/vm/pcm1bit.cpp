@@ -4,6 +4,9 @@
 	Author : Takeda.Toshiya
 	Date   : 2007.02.09 -
 
+	M5Stack version.
+	modified by shikarunochi 2019.03.25 -
+	
 	[ 1bit PCM ]
 */
 

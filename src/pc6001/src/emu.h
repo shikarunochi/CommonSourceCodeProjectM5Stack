@@ -17,10 +17,10 @@
 //undef #define DEC 10
 #undef DEC
 #endif
-#if defined(BIT)
+//#if defined(BIT)
 //undef #define BIT(nr)                 (1UL << (nr))
-#undef BIT
-#endif
+//#undef BIT
+//#endif
 
 // for debug
 //#define _DEBUG_LOG
@@ -66,7 +66,7 @@ extern int emuMain();
 #include "win32/osd.h"
 #elif defined(OSD_M5Stack)
 #include<M5Stack.h>
-#include "M5Stack/osd.h"
+#include "M5StackLGFX/osd.h"
 #define typeid "unsupport"; //
 
 #endif

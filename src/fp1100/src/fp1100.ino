@@ -4,7 +4,12 @@
 #include "emu.h"
 
 void setup() {
+#ifdef _LGFX
+  initLGFXLcd();
+  Serial.begin(115200);
+#else
   M5.begin();
+#endif
   Wire.begin();
   if(digitalRead(BUTTON_A_PIN) == 0) {
      Serial.println("Will Load menu binary");

@@ -8,7 +8,7 @@
 	modified by shikarunochi 2019.04.23 - 	
 
  */
-
+#pragma GCC optimize("O3")
 #include "fm7.h"
 #include "../../emu.h"
 #include "../../config.h"

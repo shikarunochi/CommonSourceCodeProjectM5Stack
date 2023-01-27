@@ -9,7 +9,7 @@
 
 	[ memory ]
 */
-
+#pragma GCC optimize("O3")
 #include "memory.h"
 
 #define ADDR_MASK (addr_max - 1)
@@ -21,8 +21,8 @@ void MEMORY::initialize()
 	if(rd_table == NULL) {
 		int bank_num = addr_max / bank_size;
 		
-		rd_dummy = (uint8_t *)ps_malloc(bank_size);
-		wr_dummy = (uint8_t *)ps_malloc(bank_size);
+		rd_dummy = (uint8_t *)malloc(bank_size);
+		wr_dummy = (uint8_t *)malloc(bank_size);
 		
 		rd_table = (bank_t *)calloc(bank_num, sizeof(bank_t));
 		wr_table = (bank_t *)calloc(bank_num, sizeof(bank_t));

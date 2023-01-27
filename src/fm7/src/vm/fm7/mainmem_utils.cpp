@@ -9,6 +9,7 @@
 
  *
  */
+#pragma GCC optimize("O3")
 #include "../vm.h"
 #include "../../emu.h"
 #include "fm7_mainmem.h"
@@ -18,7 +19,7 @@ void FM7_MAINMEM::initialize(void)
 	fm7_mainmem_omote = (uint8_t *)ps_malloc(0x8000);
 	fm7_mainmem_ura = (uint8_t *)ps_malloc(0x7c00);
 	fm7_mainmem_basicrom = (uint8_t *)ps_malloc(0x7c00);
-  	fm7_mainmem_bioswork = (uint8_t *)ps_malloc(0x80);
+  	fm7_mainmem_bioswork = (uint8_t *)malloc(0x80);
 
 #if !defined(_FM77AV_VARIANTS)
 	for(int i = 0; i < 8; i++) fm7_bootroms[i] = (uint8_t *)malloc(0x200);

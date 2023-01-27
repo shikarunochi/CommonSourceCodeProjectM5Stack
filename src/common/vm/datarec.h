@@ -137,7 +137,9 @@ private:
 #if defined(USE_WAV)
 	 WAVFILE *wavFile;
 #endif
+#if defined(USE_STANDARDCAS)
 	STANDARDCASFILE *standardCasFile;
+#endif
 
 public:
 	DATAREC(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)

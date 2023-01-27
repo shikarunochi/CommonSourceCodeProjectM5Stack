@@ -6,7 +6,7 @@
 
 	[ and gate ]
 */
-
+#pragma GCC optimize("O3")
 #include "and.h"
 
 void AND::write_signal(int id, uint32_t data, uint32_t mask)

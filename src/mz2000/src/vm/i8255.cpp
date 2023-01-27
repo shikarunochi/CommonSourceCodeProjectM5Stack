@@ -133,12 +133,6 @@ uint32_t I8255::read_io8(uint32_t addr)
 				write_io8(2, val);
 			}
 		}
-//		if(ch==2){
-//			uint32_t result =(port[ch].rreg & port[ch].rmask) | (port[ch].wreg & ~port[ch].rmask);
-//			if( result != 0x90 && result != 0x10  && result != 0x9D && result != 0x1D  && result != 0xDD){
-//				Serial.printf("read_io8:PORTC:%X\n",result);
-//			}
-//		}
 		return (port[ch].rreg & port[ch].rmask) | (port[ch].wreg & ~port[ch].rmask);
 	}
 	return 0xff;
@@ -171,7 +165,7 @@ void I8255::write_signal(int id, uint32_t data, uint32_t mask)
 		}
 #endif
 		break;
-	case SIG_I8255_PORT_C:		
+	case SIG_I8255_PORT_C:
 #ifndef I8255_AUTO_HAND_SHAKE
 		if(port[0].mode == 1 || port[0].mode == 2) {
 			if(mask & BIT_STB_A) {

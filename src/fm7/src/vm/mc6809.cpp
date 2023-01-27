@@ -18,7 +18,7 @@
 */
 
 // Fixed IRQ/FIRQ by Mr.Sasaji at 2011.06.17
-
+#pragma GCC optimize("O3")
 #include "vm.h"
 #include "../emu.h"
 #include "mc6809.h"

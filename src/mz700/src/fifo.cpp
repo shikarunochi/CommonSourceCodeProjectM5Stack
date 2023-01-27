@@ -4,6 +4,9 @@
 	Author : Takeda.Toshiya
 	Date   : 2014.12.19-
 
+	M5Stack version.
+	modified by shikarunochi 2019.03.21 - 
+	
 	[ fifo buffer ]
 */
 #include <M5Stack.h>

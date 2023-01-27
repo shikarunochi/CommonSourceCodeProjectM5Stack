@@ -27,6 +27,11 @@
 #define MONITOR_TYPE_COLOR		1
 #define MONITOR_TYPE_GREEN_COLOR	2
 #define MONITOR_TYPE_COLOR_GREEN	3
+#elif _MZ2000
+#define MONITOR_TYPE_GREEN		0
+#define MONITOR_TYPE_COLOR		1
+#define MONITOR_TYPE_COLOR_GREEN	2
+#define MONITOR_TYPE_GREEN_COLOR	3
 #else
 #define MONITOR_TYPE_COLOR		0
 #define MONITOR_TYPE_GREEN		1
@@ -53,7 +58,6 @@
 
 void MEMORY::initialize()
 {
-
 	wdmy = (uint8_t*)ps_malloc(0x800);
 	rdmy = (uint8_t*)ps_malloc(0x800);
 	ram = (uint8_t*)ps_malloc(0x10000);
@@ -587,7 +591,7 @@ void MEMORY::draw_screen()
 					for(int x = 0; x < 320; x++) {
 						uint8_t txt1 = src_txt[width80 ? x * 2: ((x*2) >> 1)];
 						uint8_t txt2 = src_txt[width80 ? x * 2 + 1: ((x*2 + 1) >> 1)];
-						dest0[x] = palette_green[(txt1 ? 1 : 0) + (txt2 ? 1 : 0)];
+						dest0[x] = (palette_green[(txt1 ? 1 : 0)] + palette_green[(txt2 ? 1 : 0)])/2;
 					}
 					//if(config.scan_line) {
 					//	memset(dest1, 0, 640 * sizeof(scrntype_t));
@@ -607,8 +611,7 @@ void MEMORY::draw_screen()
 					for(int x = 0; x < 320; x++) {
 						uint8_t txt1 = src_txt[width80 ? x * 2 : ((x* 2)>> 1)], gra1 = src_gra[x];
 						uint8_t txt2 = src_txt[width80 ? x * 2 + 1 : ((x* 2 + 1)>> 1)], gra2 = src_gra[x];
-						dest0[x] = palette_green[((txt1 || gra1) ? 1 : 0) + ((txt2 || gra2) ? 1 : 0)];
-						         
+						dest0[x] = (palette_green[((txt1 || gra1) ? 1 : 0)] + palette_green[((txt2 || gra2) ? 1 : 0)])/2;
 					}
 					//if(config.scan_line) {
 					//	memset(dest1, 0, 640 * sizeof(scrntype_t));

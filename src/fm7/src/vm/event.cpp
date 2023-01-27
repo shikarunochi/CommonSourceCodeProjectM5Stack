@@ -6,7 +6,7 @@
 
 	[ event manager ]
 */
-
+#pragma GCC optimize("O3")
 #include "event.h"
 
 #define EVENT_MIX	0

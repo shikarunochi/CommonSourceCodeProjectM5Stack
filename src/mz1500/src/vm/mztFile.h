@@ -15,6 +15,9 @@
 #define MZT_TAPEQUEUE_SIZE 1024 * 10
 #define MZT_TAPBUFFERSIZE 512
 
+#define MZ80B_LONG_PULSE 16
+#define MZ80B_SHORT_PULSE 8
+
 typedef struct {
 	bool isHigh;
 	uint8_t count;//0~255
@@ -50,7 +53,8 @@ private:
 	int outQueuePosition;
 	int bufferCounter;
 	int signalCounter;
-
+    int firstCount;
+    int secondCount;
 	int tapePosition;
 	int tapeLoadPhase;
 	int highCount;
@@ -58,6 +62,9 @@ private:
 	int lastHeaderPosition;
 
 	bool addCheckSumFlg;
+
+	int adjustCount;
+	int beforeTapeLoadPhase;
 
 	int addByte(uint8_t byteData);
 public:

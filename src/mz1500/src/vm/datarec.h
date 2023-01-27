@@ -26,6 +26,16 @@ class MZTFILE;
 class TAPFILE;
 #endif
 
+#if defined(USE_WAV)
+#include "wavFile.h"
+class WAVFILE;
+#endif
+
+#if defined(USE_STANDARDCAS)
+#include "standardCasFile.h"
+class STANDARDCASFILE;
+#endif
+
 #define SIG_DATAREC_MIC		0
 #define SIG_DATAREC_REMOTE	1
 #define SIG_DATAREC_TRIG	2
@@ -37,7 +47,9 @@ class NOISE;
 enum {
 	TAPE_TYPE_EMPTY = 0,
 	TAPE_TYPE_MZT,
-	TAPE_TYPE_TAP
+	TAPE_TYPE_TAP,
+	TAPE_TYPE_WAV,
+	TAPE_TYPE_STANDARDCAS
 };
 
 class DATAREC : public DEVICE
@@ -122,7 +134,13 @@ private:
 #if defined(USE_TAP)
 	 TAPFILE *tapFile;
 #endif
-	
+#if defined(USE_WAV)
+	 WAVFILE *wavFile;
+#endif
+#if defined(USE_STANDARDCAS)
+	STANDARDCASFILE *standardCasFile;
+#endif
+
 public:
 	DATAREC(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{

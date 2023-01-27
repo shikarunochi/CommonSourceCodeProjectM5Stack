@@ -28,6 +28,19 @@
 Adafruit_SSD1306 display(OLED_SCREEN_WIDTH, OLED_SCREEN_HEIGHT, &Wire, OLED_RESET);
 int oledRefreshCount = 0;
 #endif
+#ifdef USE_240X240LED
+#include <Adafruit_GFX.h>   // Core graphics library by Adafruit
+#include <Arduino_ST7789.h> // Hardware-specific library for ST7789 (with or without CS pin)
+#define EX_TFT_DC 13   //
+#define EX_TFT_RST 12  //
+#define EX_TFT_CS -1   // blank SS
+#define EX_TFT_MOSI 2 // SDA 
+//#define EX_TFT_MOSI 23 // SDA 
+#define EX_TFT_SCLK 5 // SCL 
+//#define EX_TFT_SCLK 18 // SCL 
+Arduino_ST7789 exLcd = Arduino_ST7789(EX_TFT_DC, EX_TFT_RST, EX_TFT_MOSI, EX_TFT_SCLK); //for display without CS pin
+int exLcdRefreshCount = 0;
+#endif
 
 #define REC_VIDEO_SUCCESS	1
 #define REC_VIDEO_FULL		2
@@ -116,6 +129,12 @@ void OSD::initialize_screen()
 		display.drawLine(0, OLED_SCREEN_HEIGHT, 106, 0, SSD1306_WHITE);
   		display.display();
 	#endif
+	#ifdef USE_240X240LED
+		exLcd.init(240, 240);
+		delay(100);
+		exLcd.fillRect(0, 0, 240, 240, TFT_BLACK);
+	#endif
+
 }
 
 void OSD::release_screen()
@@ -183,7 +202,37 @@ int OSD::draw_screen()
 		oledRefreshCount = 0;
 	}
 #endif
-	
+	#ifdef USE_240X240LED
+		exLcdRefreshCount++;
+	//まずは遅くても表示。
+		if(exLcdRefreshCount > 10){
+			int displayWidth = 240;
+			int displayHeight = 200 * 0.75;
+			//int displayHeight = 180;//240 * 0.75;
+			for(int y = 0;y < displayHeight;y++){
+				for(int x = 0;x < displayWidth;x++){
+					//4つのピクセルをもとに色を決める。
+					// x * 1.33, x * 1.33 + 0.5
+					// y * 1.33, y * 1.33 + 0.5
+					int x1 = (float)x * 1.33;
+					int x2 = (float)x * 1.33 + 0.5; 
+					int y1 = (float)y * 1.33;
+					int y2 = (float)y * 1.33 + 0.5; 
+					//int y1 = (float)y * 1.11;
+					//int y2 = (float)y * 1.11 + 0.5; 
+
+					//対応する3*3ドットのどこかが0じゃなければ点灯
+					scrntype_t dot1 = *(lpBmp + (x1) + (y1) * vm_screen_width);
+					scrntype_t dot2 = *(lpBmp + (x2) + (y1) * vm_screen_width);
+					scrntype_t dot3 = *(lpBmp + (x1) + (y2) * vm_screen_width);
+					scrntype_t dot4 = *(lpBmp + (x2) + (y1) * vm_screen_width);
+
+					exLcd.drawPixel(x, y + 10, (dot1 + dot2 + dot3 + dot4 ) / 4);
+				}
+			}
+			exLcdRefreshCount = 0;
+		}
+	#endif
 	if(preScreenMessage.equals(screenMessage)==false){
 		M5.Lcd.fillRect(0, 220, 320,20,TFT_BLACK);
 		preScreenMessage = screenMessage;

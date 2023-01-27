@@ -356,7 +356,7 @@ bool OSD::openFile(String file){
     fileName.toUpperCase();
     bool openFlag = false;
 #ifdef USE_TAPE
-#if defined(_MZ700)||defined(_MZ800) ||defined(_MZ1500) ||defined(_MZ1200)
+#if defined(_MZ700)||defined(_MZ800) ||defined(_MZ1500) ||defined(_MZ1200)||defined(_MZ80K)
     if(btnBLongPress == true){
       if(fileName.endsWith(".MZT")||fileName.endsWith(".MZF")||fileName.endsWith(".M12")){
         M5.Lcd.println("SET MZT TO MEMORY");

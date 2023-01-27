@@ -27,7 +27,11 @@
 #elif defined(_WIN32)
 	#include <windows.h>
 #elif defined(_M5Stack)
+#if defined(_M5Core2)
+	#include <M5Core2.h>
+#else
 	#include<M5Stack.h>
+#endif
 #endif
 #include "fileio.h"
 

@@ -9,7 +9,7 @@
 
 	[ AY-3-8910 / AY-3-8912 / AY-3-8913 ]
 */
-
+#pragma GCC optimize("O3")
 #include "ay_3_891x.h"
 #ifdef USE_DEBUGGER
 #include "debugger.h"

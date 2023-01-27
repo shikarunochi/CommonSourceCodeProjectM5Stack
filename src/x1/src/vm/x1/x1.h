@@ -133,6 +133,7 @@
 //#define USE_STATE
 
 #define USE_TAP
+#define USE_STANDARDCAS
 
 #include "../../common.h"
 #include "../../fileio.h"

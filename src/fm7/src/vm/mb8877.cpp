@@ -10,7 +10,7 @@
 
 	[ MB8877 / MB8876 / MB8866 / MB89311 ]
 */
-
+#pragma GCC optimize("O3")
 #include "mb8877.h"
 #include "disk.h"
 #include "noise.h"

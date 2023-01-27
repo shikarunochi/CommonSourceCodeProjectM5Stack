@@ -19,6 +19,7 @@
 */
 
 // Fixed IRQ/FIRQ by Mr.Sasaji at 2011.06.17
+#pragma GCC optimize("O3")
 #include "./mc6809.h"
 #include "./mc6809_consts.h"
 #include "../common.h"

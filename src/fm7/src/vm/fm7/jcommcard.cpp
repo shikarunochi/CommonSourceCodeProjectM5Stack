@@ -8,7 +8,7 @@
 	modified by shikarunochi 2019.04.23 - 	
 
  */
-
+#pragma GCC optimize("O3")
 #include "../vm.h"
 #include "../../emu.h"
 #include "../../fileio.h"

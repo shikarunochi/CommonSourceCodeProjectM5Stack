@@ -270,12 +270,12 @@ void load_config(const _TCHAR* config_path)
 		}
 	#endif
 	#ifdef USE_BINARY_FILE
-	//	MyGetPrivateProfileString(_T("RecentFiles"), _T("InitialBinaryDir"), _T(""), config.initial_binary_dir, _MAX_PATH, config_path);
-	//	for(int drv = 0; drv < USE_BINARY_FILE; drv++) {
-	//		for(int i = 0; i < MAX_HISTORY; i++) {
-	//			MyGetPrivateProfileString(_T("RecentFiles"), create_string(_T("RecentBinaryPath%d_%d"), drv + 1, i + 1), _T(""), config.recent_binary_path[drv][i], _MAX_PATH, config_path);
-	//		}
-	//	}
+		//MyGetPrivateProfileString(_T("RecentFiles"), _T("InitialBinaryDir"), _T(""), config.initial_binary_dir, _MAX_PATH, config_path);
+		for(int drv = 0; drv < USE_BINARY_FILE; drv++) {
+			for(int i = 0; i < MAX_HISTORY; i++) {
+				//MyGetPrivateProfileString(_T("RecentFiles"), create_string(_T("RecentBinaryPath%d_%d"), drv + 1, i + 1), _T(""), config.recent_binary_path[drv][i], _MAX_PATH, config_path);
+			}
+		}
 	#endif
 	#ifdef USE_BUBBLE
 		MyGetPrivateProfileString(_T("RecentFiles"), _T("InitialBubbleDir"), _T(""), config.initial_bubble_casette_dir, _MAX_PATH, config_path);
@@ -503,12 +503,12 @@ void save_config(const _TCHAR* config_path)
 		}
 	#endif
 	#ifdef USE_BINARY_FILE
-	//	MyWritePrivateProfileString(_T("RecentFiles"), _T("InitialBinaryDir"), config.initial_binary_dir, config_path);
-	//	for(int drv = 0; drv < USE_BINARY_FILE; drv++) {
-	//		for(int i = 0; i < MAX_HISTORY; i++) {
-	//			MyWritePrivateProfileString(_T("RecentFiles"), create_string(_T("RecentBinaryPath%d_%d"), drv + 1, i + 1), config.recent_binary_path[drv][i], config_path);
-	//		}
-	//	}
+		MyWritePrivateProfileString(_T("RecentFiles"), _T("InitialBinaryDir"), config.initial_binary_dir, config_path);
+		for(int drv = 0; drv < USE_BINARY_FILE; drv++) {
+			for(int i = 0; i < MAX_HISTORY; i++) {
+				//MyWritePrivateProfileString(_T("RecentFiles"), create_string(_T("RecentBinaryPath%d_%d"), drv + 1, i + 1), config.recent_binary_path[drv][i], config_path);
+			}
+		}
 	#endif
 	#ifdef USE_BUBBLE
 		MyWritePrivateProfileString(_T("RecentFiles"), _T("InitialBubbleDir"), config.initial_bubble_casette_dir, config_path);

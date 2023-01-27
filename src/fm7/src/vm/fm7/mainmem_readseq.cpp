@@ -5,6 +5,7 @@
  *  License: GPLv2
  *
  */
+#pragma GCC optimize("O3")
 #include "../vm.h"
 #include "../../emu.h"
 #include "fm7_mainmem.h"

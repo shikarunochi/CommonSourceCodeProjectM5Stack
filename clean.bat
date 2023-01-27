@@ -1,3 +1,5 @@
+set PATH=%PATH%;C:\Users\%USERNAME%\.platformio\penv\Scripts
+
 cd src
 
 cd m5
@@ -84,5 +86,6 @@ cd smc777
 platformio run --target clean
 cd ..
 
-
 cd ..
+
+pause

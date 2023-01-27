@@ -8,8 +8,11 @@
 	modified by shikarunochi 2019.03.21 - 
 	
 	[ fifo buffer ]
-*/
-#include <M5Stack.h>
+*/#if defined(_M5Core2)
+	#include <M5Core2.h>
+#else
+	#include<M5Stack.h>
+#endif
 #include <stdlib.h>
 #include <malloc.h> 
 #include "fifo.h"

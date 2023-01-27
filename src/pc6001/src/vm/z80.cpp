@@ -7,6 +7,7 @@
 
 	M5Stack version.
 	modified by shikarunochi 2019.03.24 - 
+	            BIT->BIT_Z80 2021.12.20
 
 	[ Z80 ]
 */
@@ -676,7 +677,7 @@ inline uint8_t Z80::SRL(uint8_t value)
 	return res;
 }
 
-#define BIT(bit, reg) do { \
+#define BIT_Z80(bit, reg) do { \
 	F = (F & CF) | HF | (SZ_BIT[reg & (1 << bit)] & ~(YF | XF)) | (reg & (YF | XF)); \
 } while(0)
 
@@ -940,70 +941,70 @@ void Z80::OP_CB(uint8_t code)
 	case 0x3d: L = SRL(L); break;			/* SRL  L           */
 	case 0x3e: WM8(HL, SRL(RM8(HL))); break;	/* SRL  (HL)        */
 	case 0x3f: A = SRL(A); break;			/* SRL  A           */
-	case 0x40: BIT(0, B); break;			/* BIT  0,B         */
-	case 0x41: BIT(0, C); break;			/* BIT  0,C         */
-	case 0x42: BIT(0, D); break;			/* BIT  0,D         */
-	case 0x43: BIT(0, E); break;			/* BIT  0,E         */
-	case 0x44: BIT(0, H); break;			/* BIT  0,H         */
-	case 0x45: BIT(0, L); break;			/* BIT  0,L         */
+	case 0x40: BIT_Z80(0, B); break;			/* BIT  0,B         */
+	case 0x41: BIT_Z80(0, C); break;			/* BIT  0,C         */
+	case 0x42: BIT_Z80(0, D); break;			/* BIT  0,D         */
+	case 0x43: BIT_Z80(0, E); break;			/* BIT  0,E         */
+	case 0x44: BIT_Z80(0, H); break;			/* BIT  0,H         */
+	case 0x45: BIT_Z80(0, L); break;			/* BIT  0,L         */
 	case 0x46: BIT_HL(0, RM8(HL)); break;		/* BIT  0,(HL)      */
-	case 0x47: BIT(0, A); break;			/* BIT  0,A         */
-	case 0x48: BIT(1, B); break;			/* BIT  1,B         */
-	case 0x49: BIT(1, C); break;			/* BIT  1,C         */
-	case 0x4a: BIT(1, D); break;			/* BIT  1,D         */
-	case 0x4b: BIT(1, E); break;			/* BIT  1,E         */
-	case 0x4c: BIT(1, H); break;			/* BIT  1,H         */
-	case 0x4d: BIT(1, L); break;			/* BIT  1,L         */
+	case 0x47: BIT_Z80(0, A); break;			/* BIT  0,A         */
+	case 0x48: BIT_Z80(1, B); break;			/* BIT  1,B         */
+	case 0x49: BIT_Z80(1, C); break;			/* BIT  1,C         */
+	case 0x4a: BIT_Z80(1, D); break;			/* BIT  1,D         */
+	case 0x4b: BIT_Z80(1, E); break;			/* BIT  1,E         */
+	case 0x4c: BIT_Z80(1, H); break;			/* BIT  1,H         */
+	case 0x4d: BIT_Z80(1, L); break;			/* BIT  1,L         */
 	case 0x4e: BIT_HL(1, RM8(HL)); break;		/* BIT  1,(HL)      */
-	case 0x4f: BIT(1, A); break;			/* BIT  1,A         */
-	case 0x50: BIT(2, B); break;			/* BIT  2,B         */
-	case 0x51: BIT(2, C); break;			/* BIT  2,C         */
-	case 0x52: BIT(2, D); break;			/* BIT  2,D         */
-	case 0x53: BIT(2, E); break;			/* BIT  2,E         */
-	case 0x54: BIT(2, H); break;			/* BIT  2,H         */
-	case 0x55: BIT(2, L); break;			/* BIT  2,L         */
+	case 0x4f: BIT_Z80(1, A); break;			/* BIT  1,A         */
+	case 0x50: BIT_Z80(2, B); break;			/* BIT  2,B         */
+	case 0x51: BIT_Z80(2, C); break;			/* BIT  2,C         */
+	case 0x52: BIT_Z80(2, D); break;			/* BIT  2,D         */
+	case 0x53: BIT_Z80(2, E); break;			/* BIT  2,E         */
+	case 0x54: BIT_Z80(2, H); break;			/* BIT  2,H         */
+	case 0x55: BIT_Z80(2, L); break;			/* BIT  2,L         */
 	case 0x56: BIT_HL(2, RM8(HL)); break;		/* BIT  2,(HL)      */
-	case 0x57: BIT(2, A); break;			/* BIT  2,A         */
-	case 0x58: BIT(3, B); break;			/* BIT  3,B         */
-	case 0x59: BIT(3, C); break;			/* BIT  3,C         */
-	case 0x5a: BIT(3, D); break;			/* BIT  3,D         */
-	case 0x5b: BIT(3, E); break;			/* BIT  3,E         */
-	case 0x5c: BIT(3, H); break;			/* BIT  3,H         */
-	case 0x5d: BIT(3, L); break;			/* BIT  3,L         */
+	case 0x57: BIT_Z80(2, A); break;			/* BIT  2,A         */
+	case 0x58: BIT_Z80(3, B); break;			/* BIT  3,B         */
+	case 0x59: BIT_Z80(3, C); break;			/* BIT  3,C         */
+	case 0x5a: BIT_Z80(3, D); break;			/* BIT  3,D         */
+	case 0x5b: BIT_Z80(3, E); break;			/* BIT  3,E         */
+	case 0x5c: BIT_Z80(3, H); break;			/* BIT  3,H         */
+	case 0x5d: BIT_Z80(3, L); break;			/* BIT  3,L         */
 	case 0x5e: BIT_HL(3, RM8(HL)); break;		/* BIT  3,(HL)      */
-	case 0x5f: BIT(3, A); break;			/* BIT  3,A         */
-	case 0x60: BIT(4, B); break;			/* BIT  4,B         */
-	case 0x61: BIT(4, C); break;			/* BIT  4,C         */
-	case 0x62: BIT(4, D); break;			/* BIT  4,D         */
-	case 0x63: BIT(4, E); break;			/* BIT  4,E         */
-	case 0x64: BIT(4, H); break;			/* BIT  4,H         */
-	case 0x65: BIT(4, L); break;			/* BIT  4,L         */
+	case 0x5f: BIT_Z80(3, A); break;			/* BIT  3,A         */
+	case 0x60: BIT_Z80(4, B); break;			/* BIT  4,B         */
+	case 0x61: BIT_Z80(4, C); break;			/* BIT  4,C         */
+	case 0x62: BIT_Z80(4, D); break;			/* BIT  4,D         */
+	case 0x63: BIT_Z80(4, E); break;			/* BIT  4,E         */
+	case 0x64: BIT_Z80(4, H); break;			/* BIT  4,H         */
+	case 0x65: BIT_Z80(4, L); break;			/* BIT  4,L         */
 	case 0x66: BIT_HL(4, RM8(HL)); break;		/* BIT  4,(HL)      */
-	case 0x67: BIT(4, A); break;			/* BIT  4,A         */
-	case 0x68: BIT(5, B); break;			/* BIT  5,B         */
-	case 0x69: BIT(5, C); break;			/* BIT  5,C         */
-	case 0x6a: BIT(5, D); break;			/* BIT  5,D         */
-	case 0x6b: BIT(5, E); break;			/* BIT  5,E         */
-	case 0x6c: BIT(5, H); break;			/* BIT  5,H         */
-	case 0x6d: BIT(5, L); break;			/* BIT  5,L         */
+	case 0x67: BIT_Z80(4, A); break;			/* BIT  4,A         */
+	case 0x68: BIT_Z80(5, B); break;			/* BIT  5,B         */
+	case 0x69: BIT_Z80(5, C); break;			/* BIT  5,C         */
+	case 0x6a: BIT_Z80(5, D); break;			/* BIT  5,D         */
+	case 0x6b: BIT_Z80(5, E); break;			/* BIT  5,E         */
+	case 0x6c: BIT_Z80(5, H); break;			/* BIT  5,H         */
+	case 0x6d: BIT_Z80(5, L); break;			/* BIT  5,L         */
 	case 0x6e: BIT_HL(5, RM8(HL)); break;		/* BIT  5,(HL)      */
-	case 0x6f: BIT(5, A); break;			/* BIT  5,A         */
-	case 0x70: BIT(6, B); break;			/* BIT  6,B         */
-	case 0x71: BIT(6, C); break;			/* BIT  6,C         */
-	case 0x72: BIT(6, D); break;			/* BIT  6,D         */
-	case 0x73: BIT(6, E); break;			/* BIT  6,E         */
-	case 0x74: BIT(6, H); break;			/* BIT  6,H         */
-	case 0x75: BIT(6, L); break;			/* BIT  6,L         */
+	case 0x6f: BIT_Z80(5, A); break;			/* BIT  5,A         */
+	case 0x70: BIT_Z80(6, B); break;			/* BIT  6,B         */
+	case 0x71: BIT_Z80(6, C); break;			/* BIT  6,C         */
+	case 0x72: BIT_Z80(6, D); break;			/* BIT  6,D         */
+	case 0x73: BIT_Z80(6, E); break;			/* BIT  6,E         */
+	case 0x74: BIT_Z80(6, H); break;			/* BIT  6,H         */
+	case 0x75: BIT_Z80(6, L); break;			/* BIT  6,L         */
 	case 0x76: BIT_HL(6, RM8(HL)); break;		/* BIT  6,(HL)      */
-	case 0x77: BIT(6, A); break;			/* BIT  6,A         */
-	case 0x78: BIT(7, B); break;			/* BIT  7,B         */
-	case 0x79: BIT(7, C); break;			/* BIT  7,C         */
-	case 0x7a: BIT(7, D); break;			/* BIT  7,D         */
-	case 0x7b: BIT(7, E); break;			/* BIT  7,E         */
-	case 0x7c: BIT(7, H); break;			/* BIT  7,H         */
-	case 0x7d: BIT(7, L); break;			/* BIT  7,L         */
+	case 0x77: BIT_Z80(6, A); break;			/* BIT  6,A         */
+	case 0x78: BIT_Z80(7, B); break;			/* BIT  7,B         */
+	case 0x79: BIT_Z80(7, C); break;			/* BIT  7,C         */
+	case 0x7a: BIT_Z80(7, D); break;			/* BIT  7,D         */
+	case 0x7b: BIT_Z80(7, E); break;			/* BIT  7,E         */
+	case 0x7c: BIT_Z80(7, H); break;			/* BIT  7,H         */
+	case 0x7d: BIT_Z80(7, L); break;			/* BIT  7,L         */
 	case 0x7e: BIT_HL(7, RM8(HL)); break;		/* BIT  7,(HL)      */
-	case 0x7f: BIT(7, A); break;			/* BIT  7,A         */
+	case 0x7f: BIT_Z80(7, A); break;			/* BIT  7,A         */
 	case 0x80: B = RES(0, B); break;		/* RES  0,B         */
 	case 0x81: C = RES(0, C); break;		/* RES  0,C         */
 	case 0x82: D = RES(0, D); break;		/* RES  0,D         */

@@ -218,6 +218,7 @@ int EMU::run()
 #endif
 #endif
 	update_media();
+	
 	// virtual machine may be driven to fill sound buffer
 	int extra_frames = 0;
 	//osd->update_sound(&extra_frames);
